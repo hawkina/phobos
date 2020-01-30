@@ -1176,12 +1176,24 @@ def buildModelFromDictionary(model):
 
     newobjects = []
     log("  Creating links... ({} total)".format(len(model['links'])), 'INFO')
+    # new
+    # create the link for the base_footprint first
+    counter = 0
+    
     for lnk in model['links']:
-        link = model['links'][lnk]
-        model['links'][lnk]['object'] = linkmodel.createLink(link)
-        newobjects.append(model['links'][lnk]['object'])
-        newobjects.extend(model['links'][lnk]['object'].children)
-
+        if counter is 0:
+            link = model['links']['base_footprint']
+            model['links']['base_footprint']['object'] = linkmodel.createLink(link, model)
+            newobjects.append(model['links']['base_footprint']['object'])
+            newobjects.extend(model['links']['base_footprint']['object'].children)
+            counter = 1
+        else:
+            link = model['links'][lnk]
+            model['links'][lnk]['object'] = linkmodel.createLink(link, model)
+            newobjects.append(model['links'][lnk]['object'])
+            newobjects.extend(model['links'][lnk]['object'].children)
+    
+    # end new
     log("Setting parent-child relationships", 'INFO', prefix='\n')
     bUtils.toggleLayer(defs.layerTypes['link'], True)
     for lnk in model['links']:

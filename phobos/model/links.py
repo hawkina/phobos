@@ -46,7 +46,7 @@ def getGeometricElements(link):
 
 
 # DOCU we should add the parameters, that can be inserted in the dictionary
-def createLink(link):
+def createLink(link, model):
     """Creates the blender representation of a given link and its parent joint.
     
     The link is added to the link layer.
@@ -74,10 +74,56 @@ def createLink(link):
     """
     log("Creating link object '{}'...".format(link['name']), 'DEBUG', prefix='\n')
     # create armature/bone
+    # ---NEW ---
+    # check if link name is base_link
     bUtils.toggleLayer(defs.layerTypes['link'], True)
     bpy.ops.object.select_all(action='DESELECT')
-    bpy.ops.object.armature_add(layers=bUtils.defLayers([defs.layerTypes['link']]))
+    # NOTE: bpy.data.armatures['Armature']
+    
+    if not bpy.context.blend_data.armatures :
+        log("No armatures found, result was '{}' ".format(bpy.context.blend_data.armatures), 'INFO' )
+        log("Create a new armature", 'INFO')
+        bpy.ops.object.armature_add(layers=bUtils.defLayers([defs.layerTypes['link']])) #create armature
+        
+        bpy.context.active_object.select = True # select obj the armature belongs to
+        armature = bpy.context.blend_data.armatures[0] # select armature
+        bpy.ops.object.mode_set(mode='EDIT', toggle=False) # enable edit mode      
+        bone = armature.edit_bones.new(link['name']) #create bone
+        
+        log("pose of bone '{}' ".format(model['links'][link['name']]['pose']['translation']), 'INFO')
+        bone.head = (0.0, 0.0, 0.0) # assuming this is the first bone 
+        #model['links'][link['name']]['pose']['translation']
+        # parse the string into a triple that can be read by the tail function
+        vector = model['links'][link['name']]['pose']['translation']
+        bone.tail = (vector[0], vector[1], vector[2])
+
+    else:
+        bpy.data.objects['base_footprint'].select = True # select obj the armature belongs to
+        armature = bpy.context.blend_data.armatures[0]
+        log("Found existing Armature with the name: '{}' ".format(armature.name), 'INFO')
+
+        log("Is in edit mode? check 1 '{}'".format(armature.is_editmode), 'INFO')
+        
+        bpy.context.scene.objects.active = bpy.data.objects['base_footprint']
+        bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+        log("Is in edit mode? check 2'{}'".format(armature.is_editmode), 'INFO')
+        bone = armature.edit_bones.new(link['name'])
+        vector = model['links'][model['links'][link['name']]['parent']]['pose']['translation']
+        
+        bone.head = (vector[0], vector[1], vector[2])
+        
+        vector = model['links'][link['name']]['pose']['translation']
+        bone.tail = (vector[0], vector[1], vector[2])
+        bone.parent = armature.edit_bones[model['links'][link['name']]['parent']] # parent  bone
+    
+    bpy.ops.object.mode_set(mode='OBJECT')
     newlink = bpy.context.active_object
+    # -----
+    
+    # bUtils.toggleLayer(defs.layerTypes['link'], True)
+    # bpy.ops.object.select_all(action='DESELECT')
+    # bpy.ops.object.armature_add(layers=bUtils.defLayers([defs.layerTypes['link']]))
+    # newlink = bpy.context.active_object
 
     # Move bone when adding at selected objects location
     if 'matrix' in link:
