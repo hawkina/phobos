@@ -46,7 +46,7 @@ def getGeometricElements(link):
 
 
 # DOCU we should add the parameters, that can be inserted in the dictionary
-def createLink(link, model):
+def createLink(link, model, previous):
     """Creates the blender representation of a given link and its parent joint.
     
     The link is added to the link layer.
@@ -81,40 +81,58 @@ def createLink(link, model):
     # NOTE: bpy.data.armatures['Armature']
     
     if not bpy.context.blend_data.armatures :
+        #bpy.context.scene.objects.link( bpy.data.objects.new( "base_footprint", None )) #create and Link an empty object
+
         log("No armatures found, result was '{}' ".format(bpy.context.blend_data.armatures), 'INFO' )
         log("Create a new armature", 'INFO')
+        log("Name of root bone: '{}'".format(link['name']), 'INFO' )
         bpy.ops.object.armature_add(layers=bUtils.defLayers([defs.layerTypes['link']])) #create armature
         
-        bpy.context.active_object.select = True # select obj the armature belongs to
-        armature = bpy.context.blend_data.armatures[0] # select armature
-        bpy.ops.object.mode_set(mode='EDIT', toggle=False) # enable edit mode      
-        bone = armature.edit_bones.new(link['name']) #create bone
+        #bpy.data.objects['base_footprint'].select  = True # select obj the armature belongs to
+
         
-        log("pose of bone '{}' ".format(model['links'][link['name']]['pose']['translation']), 'INFO')
+        armature = bpy.context.blend_data.armatures[0] # select armature
+        bpy.context.scene.objects.active = bpy.data.objects['Armature']
+        bpy.ops.object.mode_set(mode='EDIT', toggle=False) # enable edit mode      
+        bone = armature.edit_bones.new('base_footprint') #create bone
+        
+
+        
         bone.head = (0.0, 0.0, 0.0) # assuming this is the first bone 
         #model['links'][link['name']]['pose']['translation']
         # parse the string into a triple that can be read by the tail function
-        vector = model['links'][link['name']]['pose']['translation']
+        #vector = model['links'][link['name']]['pose']['translation']
+        vector = model['links'][model['links'][link['name']]['children'][0]]['pose']['translation']
+        log("pose of base_footprint tail'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
         bone.tail = (vector[0], vector[1], vector[2])
+        bone.parent = armature.edit_bones['Bone'] # not sure if this is necessary
 
     else:
-        bpy.data.objects['base_footprint'].select = True # select obj the armature belongs to
+        #bpy.data.objects['base_footprint'].select = True # select obj the armature belongs to
+        bpy.data.objects[previous].select = True # select obj the armature belongs to
         armature = bpy.context.blend_data.armatures[0]
         log("Found existing Armature with the name: '{}' ".format(armature.name), 'INFO')
 
-        log("Is in edit mode? check 1 '{}'".format(armature.is_editmode), 'INFO')
+        #log("Is in edit mode? check 1 '{}'".format(armature.is_editmode), 'INFO')
         
-        bpy.context.scene.objects.active = bpy.data.objects['base_footprint']
+        bpy.context.scene.objects.active = bpy.data.objects[previous] #bpy.data.objects['base_footprint']
         bpy.ops.object.mode_set(mode='EDIT', toggle=False)
-        log("Is in edit mode? check 2'{}'".format(armature.is_editmode), 'INFO')
+        #log("Is in edit mode? check 2'{}'".format(armature.is_editmode), 'INFO')
         bone = armature.edit_bones.new(link['name'])
-        vector = model['links'][model['links'][link['name']]['parent']]['pose']['translation']
-        
+
+        vector = model['links'][model['links'][link['name']]['parent']]['pose']['translation'] #translation of head of bone (parent)
         bone.head = (vector[0], vector[1], vector[2])
+        log("pose of bone head'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
         
-        vector = model['links'][link['name']]['pose']['translation']
+        vector = model['links'][link['name']]['pose']['translation'] #translation of tail of bone (child or origin)
+        log("pose of bone tail'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
         bone.tail = (vector[0], vector[1], vector[2])
-        bone.parent = armature.edit_bones[model['links'][link['name']]['parent']] # parent  bone
+
+        log("Current Bone: '{}'".format(link['name']), 'INFO')
+        
+        log("Parent Bone: '{}'".format(model['links'][model['links'][link['name']]['parent']]['name']), 'INFO')
+        #log("Child Bone: '{}'".format(model['links'][model['links'][link['name']]['child']]['name']), 'INFO')
+        bone.parent = armature.edit_bones[model['links'][model['links'][link['name']]['parent']]['name']] # parent  bone
     
     bpy.ops.object.mode_set(mode='OBJECT')
     newlink = bpy.context.active_object
