@@ -1157,6 +1157,20 @@ def deriveModelDictionary(root, name='', objectlist=[]):
 
     return model
 
+def buildSkeletonFromDictionary(model, visited_links, new_link):
+    # check if the new link which is supposed to be added is already in the visited_links list
+    if new_link not in visited_links:
+        # create new link with that name
+        link = model['links'][new_link]
+        model['links'][new_link]['object'] = linkmodel.createLink(link, model, previous)
+        # add the other stuff here that the code below does
+        previous = link['name'] # this is essentially the parent
+    else:
+        # print out that it was already there
+        log("A link with the given name already exists. Skipping...", 'WARNING')
+
+    for child in model['links'][link]['object'].children:
+        buildSkeletonFromDictionary(model, visited_links, new_link)
 
 def buildModelFromDictionary(model):
     """Creates the Blender representation of the imported model, using a model dictionary.
@@ -1180,22 +1194,46 @@ def buildModelFromDictionary(model):
     # create the link for the base_footprint first
     counter = 0
     previous = ''
-    for lnk in model['links']:
+    visited_links = {}
+    for lnk in model['links']:   # replace this with a proper "go through the list tree like" function
         if counter is 0:
             previous = 'base_footprint'
             link = model['links']['base_footprint']
             model['links']['base_footprint']['object'] = linkmodel.createLink(link, model, previous)
+            visited_links['base_footprint'] = model['links']['base_footprint']['object'] # add the just generated link to the dictionary of visited ones
             newobjects.append(model['links']['base_footprint']['object'])
             newobjects.extend(model['links']['base_footprint']['object'].children)
             counter = 1
         else:
             link = model['links'][lnk]
             model['links'][lnk]['object'] = linkmodel.createLink(link, model, previous)
+            visited_links[lnk] = model['links'][lnk]['object']
             newobjects.append(model['links'][lnk]['object'])
             newobjects.extend(model['links'][lnk]['object'].children)
             previous = link['name']
     
     # end new
+
+# backup of new
+    # create the link for the base_footprint first
+#    counter = 0
+#    previous = ''
+#    for lnk in model['links']:
+#        if counter is 0:
+#            previous = 'base_footprint'
+#            link = model['links']['base_footprint']
+#            model['links']['base_footprint']['object'] = linkmodel.createLink(link, model, previous)
+#            newobjects.append(model['links']['base_footprint']['object'])
+#            newobjects.extend(model['links']['base_footprint']['object'].children)
+#            counter = 1
+#        else:
+#            link = model['links'][lnk]
+#            model['links'][lnk]['object'] = linkmodel.createLink(link, model, previous)
+#            newobjects.append(model['links'][lnk]['object'])
+#            newobjects.extend(model['links'][lnk]['object'].children)
+#            previous = link['name']
+#    
+# end backup of new
     log("Setting parent-child relationships", 'INFO', prefix='\n')
     bUtils.toggleLayer(defs.layerTypes['link'], True)
     for lnk in model['links']:
