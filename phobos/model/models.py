@@ -1157,20 +1157,40 @@ def deriveModelDictionary(root, name='', objectlist=[]):
 
     return model
 
-def buildSkeletonFromDictionary(model, visited_links, new_link):
+def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobjects):
     # check if the new link which is supposed to be added is already in the visited_links list
-    if new_link not in visited_links:
+    log("new link to add: '{}'".format(new_link['name']), 'INFO')
+    if new_link['name'] not in visited_links:
         # create new link with that name
-        link = model['links'][new_link]
-        model['links'][new_link]['object'] = linkmodel.createLink(link, model, previous)
+        link = model['links'][new_link['name']]
+        model['links'][new_link['name']]['object'] = linkmodel.createLink(link, model, previous)
         # add the other stuff here that the code below does
-        previous = link['name'] # this is essentially the parent
+        #previous = link['name'] # this is essentially the parent
+        # other stuff
+        newobjects.append(model['links'][new_link['name']]['object'])
+        newobjects.extend(model['links'][new_link['name']]['object'].children)
+        # end other stuff
+        # add new link to the list of visited ones
+        link_name = new_link['name']
+        visited_links[link_name] = new_link
+        log("A link named '{}' was created.".format(link['name']), 'INFO')
+        # log("currently visited links: '{}' ".format(visited_links), 'INFO')
+
     else:
         # print out that it was already there
         log("A link with the given name already exists. Skipping...", 'WARNING')
 
-    for child in model['links'][link]['object'].children:
-        buildSkeletonFromDictionary(model, visited_links, new_link)
+    for child in model['links'][link['name']]['children']:
+        log("The (parent) link is: '{}'".format(link['name']), 'INFO' )
+        log("All children are: '{}'".format(model['links'][link['name']]['children']), 'INFO' )
+        log("a child named '{}' was found.".format(child), 'INFO')
+        previous = link['name'] #model['links'][child]['parent']
+        
+        if previous is '':
+            previous = 'base_footprint'
+        
+        log("previous: '{}'".format(previous), 'INFO')
+        buildSkeletonFromDictionary(model, visited_links, model['links'][child], previous, newobjects)
 
 def buildModelFromDictionary(model):
     """Creates the Blender representation of the imported model, using a model dictionary.
@@ -1195,22 +1215,7 @@ def buildModelFromDictionary(model):
     counter = 0
     previous = ''
     visited_links = {}
-    for lnk in model['links']:   # replace this with a proper "go through the list tree like" function
-        if counter is 0:
-            previous = 'base_footprint'
-            link = model['links']['base_footprint']
-            model['links']['base_footprint']['object'] = linkmodel.createLink(link, model, previous)
-            visited_links['base_footprint'] = model['links']['base_footprint']['object'] # add the just generated link to the dictionary of visited ones
-            newobjects.append(model['links']['base_footprint']['object'])
-            newobjects.extend(model['links']['base_footprint']['object'].children)
-            counter = 1
-        else:
-            link = model['links'][lnk]
-            model['links'][lnk]['object'] = linkmodel.createLink(link, model, previous)
-            visited_links[lnk] = model['links'][lnk]['object']
-            newobjects.append(model['links'][lnk]['object'])
-            newobjects.extend(model['links'][lnk]['object'].children)
-            previous = link['name']
+    buildSkeletonFromDictionary(model, visited_links, model['links']['base_footprint'], previous, newobjects)
     
     # end new
 

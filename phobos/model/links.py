@@ -109,7 +109,7 @@ def createLink(link, model, previous):
 
     else:
         #bpy.data.objects['base_footprint'].select = True # select obj the armature belongs to
-        bpy.data.objects[previous].select = True # select obj the armature belongs to
+        bpy.data.objects[0].select = True # select obj the armature belongs to
         armature = bpy.context.blend_data.armatures[0]
         log("Found existing Armature with the name: '{}' ".format(armature.name), 'INFO')
 
