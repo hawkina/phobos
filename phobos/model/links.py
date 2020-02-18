@@ -89,14 +89,10 @@ def createLink(link, model, previous):
         bpy.ops.object.armature_add(layers=bUtils.defLayers([defs.layerTypes['link']])) #create armature
         
         #bpy.data.objects['base_footprint'].select  = True # select obj the armature belongs to
-
-        
         armature = bpy.context.blend_data.armatures[0] # select armature
         bpy.context.scene.objects.active = bpy.data.objects['Armature']
         bpy.ops.object.mode_set(mode='EDIT', toggle=False) # enable edit mode      
         bone = armature.edit_bones.new('base_footprint') #create bone
-        
-
         
         bone.head = (0.0, 0.0, 0.0) # assuming this is the first bone 
         #model['links'][link['name']]['pose']['translation']
@@ -115,7 +111,8 @@ def createLink(link, model, previous):
 
         #log("Is in edit mode? check 1 '{}'".format(armature.is_editmode), 'INFO')
         
-        bpy.context.scene.objects.active = bpy.data.objects[previous] #bpy.data.objects['base_footprint']
+        log("Root Object of Armature: '{}'".format(bpy.data.objects[0]), 'INFO')
+        bpy.context.scene.objects.active = bpy.data.objects[0] #bpy.data.objects['base_footprint']
         bpy.ops.object.mode_set(mode='EDIT', toggle=False)
         #log("Is in edit mode? check 2'{}'".format(armature.is_editmode), 'INFO')
         bone = armature.edit_bones.new(link['name'])
@@ -136,6 +133,8 @@ def createLink(link, model, previous):
     
     bpy.ops.object.mode_set(mode='OBJECT')
     newlink = bpy.context.active_object
+    log("New active object is: '{}'".format(newlink), 'INFO')
+    
     # -----
     
     # bUtils.toggleLayer(defs.layerTypes['link'], True)

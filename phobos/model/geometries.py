@@ -241,6 +241,6 @@ def createGeometry(viscol, geomsrc, linkobj=None):
         newgeom.scale = geom['scale']
 
     # make object smooth
-    eUtils.smoothen_surface(newgeom)
+    eUtils.smoothen_surface(newgeom) # TODO comment this back in? 
 
     return newgeom

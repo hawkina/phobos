@@ -1184,7 +1184,7 @@ def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobj
         log("The (parent) link is: '{}'".format(link['name']), 'INFO' )
         log("All children are: '{}'".format(model['links'][link['name']]['children']), 'INFO' )
         log("a child named '{}' was found.".format(child), 'INFO')
-        previous = link['name'] #model['links'][child]['parent']
+        previous = link['name'] # model['links'][child]['parent']
         
         if previous is '':
             previous = 'base_footprint'
@@ -1238,6 +1238,7 @@ def buildModelFromDictionary(model):
 #            newobjects.extend(model['links'][lnk]['object'].children)
 #            previous = link['name']
 #    
+
 # end backup of new
     log("Setting parent-child relationships", 'INFO', prefix='\n')
     bUtils.toggleLayer(defs.layerTypes['link'], True)

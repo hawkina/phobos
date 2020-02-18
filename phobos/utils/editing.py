@@ -216,7 +216,18 @@ def parentObjectsTo(objects, parent, clear=False):
     sUtils.selectObjects([parent] + objects, active=0, clear=True)
 
     if parent.phobostype == 'link':
+        log("Phobos type: link. Set parenting to bone_relative. parent: '{}'".format(parent), 'INFO')
+        log("Objects we wanted parented: '{}'".format(objects), 'INFO')
+        # getting error of no active bone, therefore setting the parent bone to active:
+        bpy.data.objects[0].select = True # select obj the armature belongs to
+        armature = bpy.context.blend_data.armatures[0] # find armature
+        bpy.context.scene.objects.active = bpy.data.objects[0] # set the object of armature to active
+        bpy.ops.object.mode_set(mode='EDIT', toggle=False) # go into edit mode
+        
+        armature.edit_bones.active = armature.edit_bones[parent.name] # select the parent bone
         bpy.ops.object.parent_set(type='BONE_RELATIVE')
+        #bpy.ops.object.mode_set(mode='OBJECT', toggle=False) # go back to object mode
+        log("Parenting complete", 'INFO')
     else:
         bpy.ops.object.parent_set(type='OBJECT')
 
@@ -833,8 +844,9 @@ def smoothen_surface(obj):
     Returns:
 
     """
+    log("active object: '{}'".format(obj), 'INFO')
     bpy.context.scene.objects.active = obj
-
+    # bpy.context.scene.objects.active = bpy.data.objects[0] # very bad hack @TODO REPLACE
     # recalculate surface normals
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_all(action='SELECT')
