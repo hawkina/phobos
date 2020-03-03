@@ -1243,91 +1243,91 @@ def buildModelFromDictionary(model):
 #    
 
 # end backup of new
-    log("Setting parent-child relationships", 'INFO', prefix='\n')
-    bUtils.toggleLayer(defs.layerTypes['link'], True)
-    for lnk in model['links']:
-        parent = model['links'][lnk]
+    # log("Setting parent-child relationships", 'INFO', prefix='\n')
+    # bUtils.toggleLayer(defs.layerTypes['link'], True)
+    # for lnk in model['links']:
+    #     parent = model['links'][lnk]
 
-        log("Children for link " + parent['name'] + ":\n" + '\n'.join(parent['children']), 'DEBUG')
-        for chi in parent['children']:
-            child = model['links'][chi]
-            child['object'].matrix_world = parent['object'].matrix_world
-            eUtils.parentObjectsTo(child['object'], parent['object'])
+    #     log("Children for link " + parent['name'] + ":\n" + '\n'.join(parent['children']), 'DEBUG')
+    #     for chi in parent['children']:
+    #         child = model['links'][chi]
+    #         child['object'].matrix_world = parent['object'].matrix_world
+    #         eUtils.parentObjectsTo(child['object'], parent['object'])
 
-    # set transformations
-    log("Transforming links...  ({} total)".format(len(model['links'])), 'INFO', prefix='\n')
-    for lnk in model['links']:
-        if 'parent' not in model['links'][lnk]:
-            root = model['links'][lnk]
-            break
-    linkmodel.setLinkTransformations(model, root)
+    # # set transformations
+    # log("Transforming links...  ({} total)".format(len(model['links'])), 'INFO', prefix='\n')
+    # for lnk in model['links']:
+    #     if 'parent' not in model['links'][lnk]:
+    #         root = model['links'][lnk]
+    #         break
+    # linkmodel.setLinkTransformations(model, root)
 
-    log("Creating joints... ({} total)".format(len(model['joints'])), 'INFO', prefix='\n')
-    for j in model['joints']:
-        joint = model['joints'][j]
-        jointmodel.createJoint(joint, links=model['links'])
+    # log("Creating joints... ({} total)".format(len(model['joints'])), 'INFO', prefix='\n')
+    # for j in model['joints']:
+    #     joint = model['joints'][j]
+    #     jointmodel.createJoint(joint, links=model['links'])
 
-    log("Assigning model name: {}".format(model['name']), 'INFO')
-    rootlink = sUtils.getRoot(bpy.data.objects[root['object'].name])
-    if 'name' not in model:
-        log("Model name not specified in URDF. Make sure to define it thereafter.", 'WARNING')
-    else:
-        rootlink['model/name'] = model['name']
-    rootlink.location = (0, 0, 0)
+    # log("Assigning model name: {}".format(model['name']), 'INFO')
+    # rootlink = sUtils.getRoot(bpy.data.objects[root['object'].name])
+    # if 'name' not in model:
+    #     log("Model name not specified in URDF. Make sure to define it thereafter.", 'WARNING')
+    # else:
+    #     rootlink['model/name'] = model['name']
+    # rootlink.location = (0, 0, 0)
 
-    # TODO make sure this works
-    log("Creating sensors...", 'INFO')
-    if 'sensors' in model and model['sensors']:
-        for sen in model['sensors']:
-            sensormodel.createSensor(model['sensors'][sen], model['sensors'][sen]['parent'])
-    else:
-        log("  No sensors in model.", 'INFO')
+    # # TODO make sure this works
+    # log("Creating sensors...", 'INFO')
+    # if 'sensors' in model and model['sensors']:
+    #     for sen in model['sensors']:
+    #         sensormodel.createSensor(model['sensors'][sen], model['sensors'][sen]['parent'])
+    # else:
+    #     log("  No sensors in model.", 'INFO')
 
-    # TODO make sure this works
-    log("Creating motors...", 'INFO')
-    if 'motors' in model and model['motors']:
-        for motor in model['motors']:
-            eUtils.setProperties(
-                model['joints'][model['motors'][motor]['joint']],
-                model['motors'][motor],
-                category='motor',
-            )
-    else:
-        log("  No motors in model.", 'INFO')
+    # # TODO make sure this works
+    # log("Creating motors...", 'INFO')
+    # if 'motors' in model and model['motors']:
+    #     for motor in model['motors']:
+    #         eUtils.setProperties(
+    #             model['joints'][model['motors'][motor]['joint']],
+    #             model['motors'][motor],
+    #             category='motor',
+    #         )
+    # else:
+    #     log("  No motors in model.", 'INFO')
 
-    # TODO make sure this works
-    log("Creating groups...", 'INFO')
-    if 'groups' in model and model['groups']:
-        for group in model['groups']:
-            createGroup(model['groups'][group])
-    else:
-        log("  No kinematic groups in model.", 'INFO')
+    # # TODO make sure this works
+    # log("Creating groups...", 'INFO')
+    # if 'groups' in model and model['groups']:
+    #     for group in model['groups']:
+    #         createGroup(model['groups'][group])
+    # else:
+    #     log("  No kinematic groups in model.", 'INFO')
 
-    # TODO make sure this works
-    log("Creating chains...", 'INFO')
-    if 'chains' in model and model['chains']:
-        for ch in model['chains']:
-            createChain(model['chains'][ch])
-    else:
-        log("  No kinematic chains in model.", 'INFO')
+    # # TODO make sure this works
+    # log("Creating chains...", 'INFO')
+    # if 'chains' in model and model['chains']:
+    #     for ch in model['chains']:
+    #         createChain(model['chains'][ch])
+    # else:
+    #     log("  No kinematic chains in model.", 'INFO')
 
-    # TODO make sure this works
-    log("Creating lights...", 'INFO')
-    if 'lights' in model and model['lights']:
-        for light in model['lights']:
-            lightmodel.createLight(model['lights'][light])
-    else:
-        log("  No lights in model.", 'INFO')
+    # # TODO make sure this works
+    # log("Creating lights...", 'INFO')
+    # if 'lights' in model and model['lights']:
+    #     for light in model['lights']:
+    #         lightmodel.createLight(model['lights'][light])
+    # else:
+    #     log("  No lights in model.", 'INFO')
 
-    # display new objects after import
-    sUtils.selectObjects(newobjects, clear=True, active=0)
-    eUtils.sortObjectsToLayers(newobjects)
-    for obj in newobjects:
-        bUtils.setObjectLayersActive(obj, extendlayers=True)
-    bpy.ops.object.mode_set(mode='OBJECT')
-    bpy.ops.view3d.view_selected()
+    # # display new objects after import
+    # sUtils.selectObjects(newobjects, clear=True, active=0)
+    # eUtils.sortObjectsToLayers(newobjects)
+    # for obj in newobjects:
+    #     bUtils.setObjectLayersActive(obj, extendlayers=True)
+    # bpy.ops.object.mode_set(mode='OBJECT')
+    # bpy.ops.view3d.view_selected()
 
-    # update the scene
+    # # update the scene
     bUtils.update()
 
 
