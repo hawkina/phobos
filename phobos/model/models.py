@@ -1161,6 +1161,7 @@ def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobj
     # check if the new link which is supposed to be added is already in the visited_links list
     log("new link to add: '{}'".format(new_link['name']), 'INFO')
     if new_link['name'] not in visited_links:
+        # This part also essentially creates base_footprint
         # create new link with that name
         link = model['links'][new_link['name']]
         model['links'][new_link['name']]['object'] = linkmodel.createLink(link, model, previous)
@@ -1175,19 +1176,21 @@ def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobj
         visited_links[link_name] = new_link
         log("A link named '{}' was created.".format(link['name']), 'INFO')
         # log("currently visited links: '{}' ".format(visited_links), 'INFO')
+        
 
     else:
         # print out that it was already there
         log("A link with the given name already exists. Skipping...", 'WARNING')
 
     for child in model['links'][link['name']]['children']:
+        if previous is '':
+            previous = 'base_footprint'
         log("The (parent) link is: '{}'".format(link['name']), 'INFO' )
         log("All children are: '{}'".format(model['links'][link['name']]['children']), 'INFO' )
         log("a child named '{}' was found.".format(child), 'INFO')
         previous = link['name'] # model['links'][child]['parent']
         
-        if previous is '':
-            previous = 'base_footprint'
+        
         
         log("previous: '{}'".format(previous), 'INFO')
         buildSkeletonFromDictionary(model, visited_links, model['links'][child], previous, newobjects)
