@@ -78,11 +78,8 @@ def createLink(link, model, previous):
     # check if link name is base_link
     bUtils.toggleLayer(defs.layerTypes['link'], True)
     bpy.ops.object.select_all(action='DESELECT')
-    # NOTE: bpy.data.armatures['Armature']
     
     if not bpy.context.blend_data.armatures :
-        #bpy.context.scene.objects.link( bpy.data.objects.new( "base_footprint", None )) #create and Link an empty object
-
         log("No armatures found, result was '{}' ".format(bpy.context.blend_data.armatures), 'INFO' )
         log("Create a new armature", 'INFO')
         log("Name of root bone: '{}'".format(link['name']), 'INFO' )
@@ -91,11 +88,6 @@ def createLink(link, model, previous):
         armature_object = bpy.data.objects.new('armature_object', armature)
         bpy.context.scene.objects.link(armature_object)
 
-        log("Done creating a new armature: '{}'".format(bpy.data.armatures['robot_armature']), 'INFO')
-        log("Done creating a new armature object: '{}'".format(bpy.data.objects['armature_object']), 'INFO')
-        #bpy.data.objects['robot_armature'].select  = True # select obj the armature belongs to
-        #armature = bpy.data.armatures['Armature'] # select armature
-        #bpy.data.objects['armature_object'].select  = True 
         # create root bone
         armature = bpy.data.objects['armature_object']
         bpy.context.scene.objects.active = armature
@@ -103,32 +95,17 @@ def createLink(link, model, previous):
 
         bone = armature.data.edit_bones.new('base_footprint') #create bone
         bone.head = (0.0, 0.0, 0.0) # assuming this is the first bone 
-        #model['links'][link['name']]['pose']['translation']
-        # parse the string into a triple that can be read by the tail function
-        #vector = model['links'][link['name']]['pose']['translation']
         vector = model['links'][model['links'][link['name']]['children'][0]]['pose']['translation']
         log("pose of base_footprint tail'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
         bone.tail = (0.0, 0.0, 0.0001)
-        # bone.tail = (vector[0], vector[1], vector[2])
-        # if bone.tail == (0.0, 0.0, 0.0):
-        #    bone.tail = (0.0, 0.0, 0.0001) # make sure that the bone does not have length of 0 or Blender will delete it.
-        #    log("Bone pose was 0 0 0. Made it 0.000001", 'INFO')
-
-        #bone.parent = armature.edit_bones['base_footprint'] # not sure if this is necessary
 
     else:
-        #bpy.data.objects['base_footprint'].select = True # select obj the armature belongs to
-        #bpy.data.objects['armature_object'].select = True # select obj the armature belongs to
         armature = bpy.data.objects['armature_object']
         bpy.context.scene.objects.active = armature
         log("Found existing Armature with the name: '{}' ".format(armature.name), 'INFO')
-
-        #log("Is in edit mode? check 1 '{}'".format(armature.is_editmode), 'INFO')
         
         log("Root Object of Armature: '{}'".format(bpy.data.objects[0]), 'INFO')
-        #bpy.data.objects['base_footprint']
         bpy.ops.object.mode_set(mode='EDIT', toggle=False)
-        #log("Is in edit mode? check 2'{}'".format(armature.is_editmode), 'INFO')
         bone = armature.data.edit_bones.new(link['name'])
 
         vector = model['links'][model['links'][link['name']]['parent']]['pose']['translation'] #translation of head of bone (parent)
@@ -152,7 +129,6 @@ def createLink(link, model, previous):
         log("Current Bone: '{}'".format(link['name']), 'INFO')
         
         log("Parent Bone: '{}'".format(model['links'][model['links'][link['name']]['parent']]['name']), 'INFO')
-        #log("Child Bone: '{}'".format(model['links'][model['links'][link['name']]['child']]['name']), 'INFO')
         bone.parent = armature.data.edit_bones[model['links'][model['links'][link['name']]['parent']]['name']] # parent  bone
     
     
