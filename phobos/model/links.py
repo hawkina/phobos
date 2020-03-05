@@ -46,7 +46,7 @@ def getGeometricElements(link):
 
 
 # DOCU we should add the parameters, that can be inserted in the dictionary
-def createLink(link, model, previous):
+def createLink(link, model, previous, counter):
     """Creates the blender representation of a given link and its parent joint.
     
     The link is added to the link layer.
@@ -97,7 +97,8 @@ def createLink(link, model, previous):
         bone.head = (0.0, 0.0, 0.0) # assuming this is the first bone 
         vector = model['links'][model['links'][link['name']]['children'][0]]['pose']['translation']
         log("pose of base_footprint tail'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
-        bone.tail = (0.0, 0.0, 0.0001)
+        bone.tail = (0.0, 0.0, 0.001) # without this there are two bones with the same location and same size. Model building dies then.
+        # add the pose to the relative_poses list with the name as key
 
     else:
         armature = bpy.data.objects['armature_object']
@@ -106,30 +107,52 @@ def createLink(link, model, previous):
         
         log("Root Object of Armature: '{}'".format(bpy.data.objects[0]), 'INFO')
         bpy.ops.object.mode_set(mode='EDIT', toggle=False)
-        bone = armature.data.edit_bones.new(link['name'])
+        #bone = armature.data.edit_bones.new(link['name'])
 
-        vector = model['links'][model['links'][link['name']]['parent']]['pose']['translation'] #translation of head of bone (parent)
-        bone.head = (vector[0], vector[1], vector[2])
-        log("pose of bone head'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
+
+        # vector = model['links'][model['links'][link['name']]['parent']]['pose']['translation'] #translation of head of bone (parent)
+        # parent_tail = relative_poses[model['links'][model['links'][link['name']]['parent']]['name']][1] #get pose of that parent link from relative_poses list
+        # bone.head = (parent_tail[0], parent_tail[1], parent_tail[2])
+        # log("pose of bone head'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
         
         vector = model['links'][link['name']]['pose']['translation'] #translation of tail of bone (child or origin)
-        log("pose of bone tail'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
-        bone.tail = (vector[0], vector[1], vector[2])
+        # log("pose of bone tail'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
+        # bone.tail = (vector[0] + parent_tail[0], vector[1] + parent_tail[1], vector[2] + parent_tail[2])
+        parent_name = model['links'][model['links'][link['name']]['parent']]['name']
+        parent_pose = model['links'][model['links'][link['name']]['parent']]['pose']['translation']
 
-        if bone.head == bone.tail:
-            log("Pose of bone head and tail are identical", 'INFO')
-            bone.tail = (vector[0], vector[1], vector[2] + 0.0001) # make sure bones of length 0 do not exist or Blender will delete them
-            log("Changed bone pose. Bone pose head: '{}'".format(bone.head), 'INFO')
-            log("Changed bone pose. Bone pose tail: '{}'".format(bone.tail), 'INFO')
+        armature.data.edit_bones[parent_name].select_tail=True # select the tail to extrude from
+        # make sure bone length can't be 0
+        log("Parent_Pose: '{}'".format(parent_pose), 'WARNING')
+        log("Child_pose: '{}'".format(vector), 'WARNING')
+        if (vector[0] == 0.0 and vector[1] == 0.0 and vector[2] == 0.0) or parent_pose == vector:
+            vector = (parent_pose[0], parent_pose[1], parent_pose[2] + 0.001)
+            log("Pose of vector would have been 0, increased. new pose is: '{}'".format(vector), 'WARNING')
+
+        bpy.ops.armature.extrude_move(TRANSFORM_OT_translate={"value":vector})
+        armature.data.edit_bones[parent_name + '.001'].name = link['name']
+        bone = armature.data.edit_bones[link['name']]
+        #bpy.ops.armature.edit_bones.BONE_SELECTED.name = link['name']
+
+        # this is needed to prevent 0.0 length bones from being not created.
+        # if bone.head == bone.tail or bone.length == 0.0:
+        #     log("Pose of bone head and tail are identical", 'INFO')
+        #     bone.head = (0.0, 0.0, 0.0)
+        #     bone.tail = (vector[0], vector[1], vector[2] + 0.001) # make sure bones of length 0 do not exist or Blender will delete them
+        #     log("Changed bone pose. Bone pose head: '{}'".format(bone.head), 'INFO')
+        #     log("Changed bone pose. Bone pose tail: '{}'".format(bone.tail), 'INFO')
         
-        if bone.name == 'base_link':
-            bone.head = (0.0, 0.0, 0.0001)
-            log("Changed bone pose of head since this is base_link. new pose is: '{}'".format(bone.head), 'INFO')
+        # if bone.name == 'base_link':
+        #     bone.head = (0.0, 0.0, 0.0001)
+        #     log("Changed bone pose of head since this is base_link. new pose is: '{}'".format(bone.head), 'INFO')
 
+        # add the added bone and it's pose to the relative poses list
+        # relative_poses[link['name']] = (bone.head, bone.tail)
+
+        model['links'][model['links'][link['name']]['parent']]['pose']['translation'] = [vector[0], vector[1], vector[2]] ## if the pose was changed this is important
         log("Current Bone: '{}'".format(link['name']), 'INFO')
-        
         log("Parent Bone: '{}'".format(model['links'][model['links'][link['name']]['parent']]['name']), 'INFO')
-        bone.parent = armature.data.edit_bones[model['links'][model['links'][link['name']]['parent']]['name']] # parent  bone
+        # bone.parent = armature.data.edit_bones[model['links'][model['links'][link['name']]['parent']]['name']] # parent  bone
     
     
     bpy.ops.object.mode_set(mode='OBJECT') # exit edit mode
