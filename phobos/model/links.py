@@ -44,6 +44,35 @@ def getGeometricElements(link):
         collisions = [link['collision'][v] for v in link['collision']]
     return visuals, collisions
 
+def generateMatrix(model, link, pose, armature):
+    "Gets the model object and a link, calculates the matrix and returns it"
+    log("generate matrix called with '{}' ".format(link['name']), 'INFO')
+    if pose == 0.0:
+        pose = armature.data.edit_bones[link['name']].parent.tail
+
+    log("pose of parent '{}' ".format(pose), 'INFO')
+    euler_rotation = model['links'][link['name']]['pose']['rotation_euler']
+
+    mat_location = mathutils.Matrix.Translation((pose[0], pose[1], pose[2]))
+    mat_rotation = mathutils.Euler((euler_rotation[0], euler_rotation[1], euler_rotation[2]), 'XYZ').to_matrix()
+    mat_final = mat_location.to_4x4() * mat_rotation.to_4x4()
+
+    return mat_final
+
+def collectParentMatrixes(model, link, pose, mat, armature):
+    log("collect parent matrix called with '{}' ".format(link['name']), 'INFO')
+    new_mat = generateMatrix(model, link, pose, armature)
+    mat = new_mat *  mat
+
+    try:
+        model['links'][link['name']]['parent']
+        collectParentMatrixes(model, model['links'][link['name']]['parent'], 0.0, mat, armature)
+    except KeyError:
+        log("No more parents.", 'INFO')
+
+    return mat
+    
+
 
 # DOCU we should add the parameters, that can be inserted in the dictionary
 def createLink(link, model, previous, counter):
@@ -95,43 +124,76 @@ def createLink(link, model, previous, counter):
 
         bone = armature.data.edit_bones.new('base_footprint') #create bone
         bone.head = (0.0, 0.0, 0.0) # assuming this is the first bone 
-        vector = model['links'][model['links'][link['name']]['children'][0]]['pose']['translation']
-        log("pose of base_footprint tail'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
+        pose = model['links'][model['links'][link['name']]['children'][0]]['pose']['translation']
+        log("pose of base_footprint tail'{}' ".format((pose[0], pose[1], pose[2])), 'INFO')
         bone.tail = (0.0, 0.0, 0.001) # without this there are two bones with the same location and same size. Model building dies then.
         # add the pose to the relative_poses list with the name as key
 
     else:
         armature = bpy.data.objects['armature_object']
         bpy.context.scene.objects.active = armature
-        log("Found existing Armature with the name: '{}' ".format(armature.name), 'INFO')
-        
-        log("Root Object of Armature: '{}'".format(bpy.data.objects[0]), 'INFO')
         bpy.ops.object.mode_set(mode='EDIT', toggle=False)
         #bone = armature.data.edit_bones.new(link['name'])
 
 
-        # vector = model['links'][model['links'][link['name']]['parent']]['pose']['translation'] #translation of head of bone (parent)
+        pose = model['links'][link['name']]['pose']['translation'] #translation of current
         # parent_tail = relative_poses[model['links'][model['links'][link['name']]['parent']]['name']][1] #get pose of that parent link from relative_poses list
         # bone.head = (parent_tail[0], parent_tail[1], parent_tail[2])
         # log("pose of bone head'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
         
-        vector = model['links'][link['name']]['pose']['translation'] #translation of tail of bone (child or origin)
         # log("pose of bone tail'{}' ".format((vector[0], vector[1], vector[2])), 'INFO')
         # bone.tail = (vector[0] + parent_tail[0], vector[1] + parent_tail[1], vector[2] + parent_tail[2])
+        
         parent_name = model['links'][model['links'][link['name']]['parent']]['name']
-        parent_pose = model['links'][model['links'][link['name']]['parent']]['pose']['translation']
+        parent = model['links'][parent_name]
+        #parent_pose = model['links'][model['links'][link['name']]['parent']]['pose']['translation']
+        parent_pose = armature.data.edit_bones[parent_name].tail
 
         armature.data.edit_bones[parent_name].select_tail=True # select the tail to extrude from
         # make sure bone length can't be 0
         log("Parent_Pose: '{}'".format(parent_pose), 'WARNING')
-        log("Child_pose: '{}'".format(vector), 'WARNING')
-        if (vector[0] == 0.0 and vector[1] == 0.0 and vector[2] == 0.0) or parent_pose == vector:
-            vector = (parent_pose[0], parent_pose[1], parent_pose[2] + 0.001)
-            log("Pose of vector would have been 0, increased. new pose is: '{}'".format(vector), 'WARNING')
+        log("Child_pose: '{}'".format(pose), 'WARNING')
 
-        bpy.ops.armature.extrude_move(TRANSFORM_OT_translate={"value":vector})
-        armature.data.edit_bones[parent_name + '.001'].name = link['name']
-        bone = armature.data.edit_bones[link['name']]
+        if (pose[0] == 0.0 and pose[1] == 0.0 and pose[2] == 0.0) or parent_pose == pose:
+            pose = (parent_pose[0], parent_pose[1], parent_pose[2] + 0.001)
+            log("Pose of vector would have been 0, increased. new pose is: '{}'".format(pose), 'WARNING')
+
+        # Generate matrix for Bone: 
+         
+        mat_location = mathutils.Matrix.Translation((pose[0], pose[1], pose[2])) # make location matrix
+        log("mat_location: '{}'".format(mat_location), 'WARNING')
+
+        euler_rotation = model['links'][link['name']]['pose']['rotation_euler'] # get euler
+        log("euler_rotation: '{}'".format(euler_rotation), 'WARNING')
+
+        mat_rotation = mathutils.Euler((euler_rotation[0], euler_rotation[1], euler_rotation[2]), 'XYZ').to_matrix() # make rotation matrix
+        log("mat_rotation: '{}'".format(mat_rotation), 'WARNING')
+
+        mat_current = mat_location.to_4x4() * mat_rotation.to_4x4() # combine them into one
+        log("mat_current: '{}'".format(mat_current.decompose()), 'WARNING')
+
+        mat_parent = mathutils.Matrix.Translation((parent_pose[0], parent_pose[1], parent_pose[2])) #translation
+        log("mat_parent: '{}'".format(mat_parent.decompose()), 'WARNING')
+
+        mat_final = mat_parent * mat_current
+        
+        log("mat_final: '{}'".format(mat_final.decompose()), 'WARNING')
+        #mat_final = collectParentMatrixes(model, parent, pose, mat, armature) # matrix of current link
+        #mat_final = mat_final * mat
+
+        
+
+        #bpy.ops.armature.extrude_move(TRANSFORM_OT_translate={"value":vector})
+        #armature.data.edit_bones[parent_name + '.001'].name = link['name']
+        bone = armature.data.edit_bones.new(link['name'])
+        bone.matrix = mat_final
+        #bone.head = (parent_pose[0], parent_pose[1], parent_pose[2])
+        #bone.tail = (pose[0], pose[1], pose[2])
+        log("Resulting pose: '{}'".format(armature.data.edit_bones[link['name']].tail), 'WARNING')
+
+        bone.parent = armature.data.edit_bones[parent_name] # parent  bone
+        bone.use_connect = True
+        bone.use_relative_parent = True
         #bpy.ops.armature.edit_bones.BONE_SELECTED.name = link['name']
 
         # this is needed to prevent 0.0 length bones from being not created.
@@ -149,15 +211,15 @@ def createLink(link, model, previous, counter):
         # add the added bone and it's pose to the relative poses list
         # relative_poses[link['name']] = (bone.head, bone.tail)
 
-        model['links'][model['links'][link['name']]['parent']]['pose']['translation'] = [vector[0], vector[1], vector[2]] ## if the pose was changed this is important
+        model['links'][model['links'][link['name']]['parent']]['pose']['translation'] = [pose[0], pose[1], pose[2]] ## if the pose was changed this is important
         log("Current Bone: '{}'".format(link['name']), 'INFO')
         log("Parent Bone: '{}'".format(model['links'][model['links'][link['name']]['parent']]['name']), 'INFO')
-        # bone.parent = armature.data.edit_bones[model['links'][model['links'][link['name']]['parent']]['name']] # parent  bone
+        
     
     
     bpy.ops.object.mode_set(mode='OBJECT') # exit edit mode
     newlink = bpy.context.active_object
-    log("New active object is: '{}'".format(newlink), 'INFO')
+    #log("New active object is: '{}'".format(newlink), 'INFO')
     log("Bone name: '{}'".format(bone.name), 'INFO')
     log("Bone length: '{}'".format(bone.length), 'INFO')
     log("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 'INFO')

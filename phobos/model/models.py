@@ -1182,13 +1182,8 @@ def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobj
     for child in model['links'][link['name']]['children']:
         if previous is '':
             previous = 'base_footprint'
-        log("The (parent) link is: '{}'".format(link['name']), 'INFO' )
-        log("All children are: '{}'".format(model['links'][link['name']]['children']), 'INFO' )
-        log("a child named '{}' was found.".format(child), 'INFO')
         previous = link['name'] # model['links'][child]['parent']      
-        log("previous: '{}'".format(previous), 'INFO')
         counter = counter + 1
-        log("Counter: '{}'".format(counter), 'WARNING')
         buildSkeletonFromDictionary(model, visited_links, model['links'][child], previous, newobjects, counter)
 
 def buildModelFromDictionary(model):
