@@ -155,7 +155,7 @@ def createLink(link, model, previous, counter):
         log("Child_pose: '{}'".format(pose), 'WARNING')
 
         if (pose[0] == 0.0 and pose[1] == 0.0 and pose[2] == 0.0) or parent_pose == pose:
-            pose = (parent_pose[0], parent_pose[1], parent_pose[2] + 0.001)
+            pose = (pose[0], pose[1], pose[2] + 0.001)
             log("Pose of vector would have been 0, increased. new pose is: '{}'".format(pose), 'WARNING')
 
         # Generate matrix for Bone: 
