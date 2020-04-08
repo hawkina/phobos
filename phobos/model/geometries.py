@@ -12,6 +12,7 @@
 import os
 import bpy
 import mathutils
+import math
 import phobos.defs as defs
 import phobos.utils.naming as nUtils
 import phobos.utils.blender as bUtils
@@ -240,7 +241,21 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, bone_name ):
         #eUtils.parentObjectsTo(newgeom, linkobj)
         #bpy.ops.object.parent_set(type='BONE')
         #newgeom.parent_set(type='BONE'
-        newgeom.matrix_local = matrix #location * rotation
+
+        # "one finger is flipped"-issue fix: if it's the problem finger, flip 180°
+        name_list = ['visual_0_r_gripper_r_finger_link', 
+                    'visual_0_r_gripper_r_finger_tip_link', 
+                    'visual_0_l_gripper_r_finger_link', 
+                    'visual_0_l_gripper_finger_tip_link']
+
+        if name in name_list:
+            mat_rot = mathutils.Euler((math.pi, 0.0, 0.0), 'XYZ').to_matrix()
+            newgeom.matrix_local = matrix * mat_rot.to_4x4()
+        else:
+            newgeom.matrix_local = matrix #location * rotation
+
+    
+
 
         armature = bpy.data.objects['armature_object']
         newgeom.parent = armature
@@ -248,11 +263,12 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, bone_name ):
         newgeom.parent_type = 'BONE'
         
         # # go the vertex route: aka. create a vertex group with the same name as the bone name
-        vertex_group = newgeom.vertex_groups.new(name)
-        vertices = []
-        for vertex in newgeom.data.vertices:
-            vertices.append(vertex.index)
-        vertex_group.add(vertices, 1.0, 'ADD')
+        # NOTE: Vertex groups are only needed for deformation of bones, which we do not want here. 
+        # vertex_group = newgeom.vertex_groups.new(name)
+        # vertices = []
+        # for vertex in newgeom.data.vertices:
+        #     vertices.append(vertex.index)
+        # vertex_group.add(vertices, 1.0, 'ADD')
 
         # Add armature modifiert
         bpy.ops.object.modifier_add(type='ARMATURE')

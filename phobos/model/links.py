@@ -165,9 +165,9 @@ def createLink(link, model, previous, counter):
         euler_rotation = model['links'][link['name']]['pose']['rotation_euler'] # get euler
 
         mat_rotation = mathutils.Euler((euler_rotation[0], euler_rotation[1], euler_rotation[2]), 'XYZ').to_matrix() # make rotation matrix
-        mat_current = mat_location.to_4x4() * mat_rotation.to_4x4() # combine them into one
+        mat_current = mat_location.to_4x4()  # combine them into one
         mat_parent = mathutils.Matrix.Translation((parent_pose[0], parent_pose[1], parent_pose[2])) #translation
-        mat_final = mat_parent * mat_current
+        mat_final = mat_parent * mat_current * mat_rotation.to_4x4()
         
         bone = armature.data.edit_bones.new(link['name'])
         bone.matrix = mat_final
