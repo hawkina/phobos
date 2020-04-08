@@ -103,7 +103,7 @@ def deriveScale(obj):
     return list(obj.matrix_world.to_scale())
 
 
-def createGeometry(viscol, geomsrc, linkobj=None):
+def createGeometry(viscol, geomsrc, linkobj, matrix, bone_name ):
     """Creates Blender object for visual or collision objects.
     
     If the creation fails, nothing is returned.
@@ -217,24 +217,54 @@ def createGeometry(viscol, geomsrc, linkobj=None):
             for tag in viscol[prop]:
                 newgeom[prop[1:] + '/' + tag] = viscol[prop][tag]
 
-    nUtils.safelyName(newgeom, viscol['name'])
-    newgeom[geomsrc + '/name'] = viscol['name']
+    # make sure the name of the mesh fits the name of the bone
+    name = viscol['name'] #.replace('visual_0_', '')
+    #name = name.replace('.000', '')
+    nUtils.safelyName(newgeom, name)
+    newgeom[geomsrc + '/name'] = name
     newgeom.phobostype = geomsrc
 
     # place geometric object relative to its parent link
     if linkobj:
-        if 'pose' in viscol:
-            log("Setting transformation of element: " + viscol['name'], 'DEBUG')
-            location = mathutils.Matrix.Translation(viscol['pose']['translation'])
-            rotation = (
-                mathutils.Euler(tuple(viscol['pose']['rotation_euler']), 'XYZ').to_matrix().to_4x4()
-            )
-        else:
-            log("No pose in element: " + viscol['name'], 'DEBUG')
-            location = mathutils.Matrix.Identity(4)
-            rotation = mathutils.Matrix.Identity(4)
-        eUtils.parentObjectsTo(newgeom, linkobj)
-        newgeom.matrix_local = location * rotation
+        # if 'pose' in viscol:
+        #     log("Setting transformation of element: " + viscol['name'], 'DEBUG')
+        #     #location = mathutils.Matrix.Translation(viscol['pose']['translation'])
+        #     #rotation = (
+        #         mathutils.Euler(tuple(viscol['pose']['rotation_euler']), 'XYZ').to_matrix().to_4x4()
+        #     #)
+        # else:
+        #     log("No pose in element: " + viscol['name'], 'DEBUG')
+        #     location = mathutils.Matrix.Identity(4)
+        #     rotation = mathutils.Matrix.Identity(4)
+        
+        #eUtils.parentObjectsTo(newgeom, linkobj)
+        #bpy.ops.object.parent_set(type='BONE')
+        #newgeom.parent_set(type='BONE'
+        newgeom.matrix_local = matrix #location * rotation
+
+        armature = bpy.data.objects['armature_object']
+        newgeom.parent = armature
+        newgeom.parent_bone = bone_name
+        newgeom.parent_type = 'BONE'
+        
+        # # go the vertex route: aka. create a vertex group with the same name as the bone name
+        vertex_group = newgeom.vertex_groups.new(name)
+        vertices = []
+        for vertex in newgeom.data.vertices:
+            vertices.append(vertex.index)
+        vertex_group.add(vertices, 1.0, 'ADD')
+
+        # Add armature modifiert
+        bpy.ops.object.modifier_add(type='ARMATURE')
+        bpy.context.object.modifiers["Armature"].object = bpy.data.objects["armature_object"]
+        bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Armature")
+        
+        
+        # index_list = [0]*len(newgeom.data.vertices)
+        # newgeom.data.vertices.foreach_get('index', index_list)
+        # newgeom.vertex_groups[bone_name].add(index_list, 1, 'REPLACE')
+
+        
 
     # scale imported object
     if 'scale' in geom:

@@ -129,6 +129,14 @@ def createLink(link, model, previous, counter):
         bone.tail = (0.0, 0.0, 0.001) # without this there are two bones with the same location and same size. Model building dies then.
         # add the pose to the relative_poses list with the name as key
 
+        euler_rotation = model['links'][link['name']]['pose']['rotation_euler'] # get euler
+
+        mat_location = mathutils.Matrix.Translation((0.0, 0.0, 0.001))
+        mat_rotation = mathutils.Euler((euler_rotation[0], euler_rotation[1], euler_rotation[2]), 'XYZ').to_matrix() # make rotation matrix
+        mat_current = mat_location.to_4x4() * mat_rotation.to_4x4() # combine them into one
+        mat_parent = mathutils.Matrix.Translation((0.0, 0.0, 0.0)) #translation
+        mat_final = mat_parent * mat_current
+
     else:
         armature = bpy.data.objects['armature_object']
         bpy.context.scene.objects.active = armature
@@ -175,13 +183,18 @@ def createLink(link, model, previous, counter):
         log("Current Bone: '{}'".format(link['name']), 'INFO')
         log("Parent Bone: '{}'".format(model['links'][model['links'][link['name']]['parent']]['name']), 'INFO')
         
+    # general properties of bones: 
+    bone.use_deform = False
     
-    
-    bpy.ops.object.mode_set(mode='OBJECT') # exit edit mode
-    newlink = bpy.context.active_object
+    bpy.ops.object.mode_set(mode='OBJECT', toggle=True) # exit edit mode
+    newlink = bone
     log("Bone name: '{}'".format(bone.name), 'INFO')
     log("Bone length: '{}'".format(bone.length), 'INFO')
     log("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 'INFO')
+    # spawn meshes of bones in Armature
+    
+    bUtils.update()
+    
     # -----
     
     # bUtils.toggleLayer(defs.layerTypes['link'], True)
@@ -194,9 +207,9 @@ def createLink(link, model, previous, counter):
     #    newlink.matrix_world = link['matrix']
 
     # give it a proper name
-    newlink.phobostype = 'link'
-    if link['name'] in bpy.data.objects.keys():
-        log('Object with name of new link already exists: ' + link['name'], 'WARNING')
+    #newlink.phobostype = 'link'
+    #if link['name'] in bpy.data.objects.keys():
+    #    log('Object with name of new link already exists: ' + link['name'], 'WARNING')
     #nUtils.safelyName(newlink, link['name'])
 
     # set the size of the link
@@ -209,30 +222,41 @@ def createLink(link, model, previous, counter):
         scale = 0.2
 
     # use scaling factor provided by user
-    if 'scale' in link:
-        scale *= link['scale']
-    newlink.scale = (scale, scale, scale)
-    bpy.ops.object.transform_apply(scale=True)
+    #if 'scale' in link:
+    #    scale *= link['scale']
+    #newlink.scale = (scale, scale, scale)
+    #bpy.ops.object.transform_apply(scale=True)
 
     # add custom properties
-    for prop in link:
-        if prop.startswith('$'):
-            for tag in link[prop]:
-                newlink['link/' + prop[1:] + '/' + tag] = link[prop][tag]
+    #for prop in link:
+    #    if prop.startswith('$'):
+    #        for tag in link[prop]:
+    #            newlink['link/' + prop[1:] + '/' + tag] = link[prop][tag]
     #TODO Hasu: comment these back in
     # create inertial
     #if 'inertial' in link:
     #    inertia.createInertial(link['inertial'], newlink)
+
     #TODO Hasu: Comment these back in
-    # create geometric elements
-    #log(
-    #    "Creating visual and collision objects for link '{0}':\n{1}".format(
-    #        link['name'], '    \n'.join([elem['name'] for elem in visuals + collisions])
-    #    ),
-    #    'DEBUG',
-    #)
+    #create geometric elements
+    log(
+        "Creating visual and collision objects for link '{0}':\n{1}".format(
+            link['name'], '    \n'.join([elem['name'] for elem in visuals + collisions])
+        ),
+        'DEBUG',
+    )
+
     #for vis in visuals:
-    #    geometrymodel.createGeometry(vis, 'visual', newlink) #TODO this is currently buggy
+    try: 
+        mesh = geometrymodel.createGeometry(visuals[0], 'visual', newlink, mat_final, bone.name) #TODO this is currently buggy
+    except IndexError:
+        log("Index out of Bounds. No Visual.", 'WARNING')
+
+    # parent mesh to bone:
+    #bpy.context.scene.objects.active = mesh
+    #mesh.parent_set(type='BONE')
+    #bpy.ops.object.parent_name(newlink['NAME'])
+
     #for col in collisions:
     #    geometrymodel.createGeometry(col, 'collision', newlink)
     return newlink

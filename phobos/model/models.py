@@ -1214,27 +1214,7 @@ def buildModelFromDictionary(model):
     
     # end new
 
-# backup of new
-    # create the link for the base_footprint first
-#    counter = 0
-#    previous = ''
-#    for lnk in model['links']:
-#        if counter is 0:
-#            previous = 'base_footprint'
-#            link = model['links']['base_footprint']
-#            model['links']['base_footprint']['object'] = linkmodel.createLink(link, model, previous)
-#            newobjects.append(model['links']['base_footprint']['object'])
-#            newobjects.extend(model['links']['base_footprint']['object'].children)
-#            counter = 1
-#        else:
-#            link = model['links'][lnk]
-#            model['links'][lnk]['object'] = linkmodel.createLink(link, model, previous)
-#            newobjects.append(model['links'][lnk]['object'])
-#            newobjects.extend(model['links'][lnk]['object'].children)
-#            previous = link['name']
-#    
 
-# end backup of new
     # log("Setting parent-child relationships", 'INFO', prefix='\n')
     # bUtils.toggleLayer(defs.layerTypes['link'], True)
     # for lnk in model['links']:
@@ -1267,7 +1247,7 @@ def buildModelFromDictionary(model):
     #     rootlink['model/name'] = model['name']
     # rootlink.location = (0, 0, 0)
 
-    # # TODO make sure this works
+    # # # TODO make sure this works
     # log("Creating sensors...", 'INFO')
     # if 'sensors' in model and model['sensors']:
     #     for sen in model['sensors']:
