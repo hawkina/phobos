@@ -104,7 +104,7 @@ def deriveScale(obj):
     return list(obj.matrix_world.to_scale())
 
 
-def createGeometry(viscol, geomsrc, linkobj, matrix, bone_name ):
+def createGeometry(viscol, geomsrc, linkobj, matrix, parent_name, bone_name ):
     """Creates Blender object for visual or collision objects.
     
     If the creation fails, nothing is returned.
@@ -219,8 +219,8 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, bone_name ):
                 newgeom[prop[1:] + '/' + tag] = viscol[prop][tag]
 
     # make sure the name of the mesh fits the name of the bone
-    name = viscol['name'] #.replace('visual_0_', '')
-    #name = name.replace('.000', '')
+    name = viscol['name'].replace('visual_0_', '')
+    name = name.replace('.000', '') 
     nUtils.safelyName(newgeom, name)
     newgeom[geomsrc + '/name'] = name
     newgeom.phobostype = geomsrc
@@ -243,37 +243,70 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, bone_name ):
         #newgeom.parent_set(type='BONE'
 
         # "one finger is flipped"-issue fix: if it's the problem finger, flip 180°
-        name_list = ['visual_0_r_gripper_r_finger_link', 
-                    'visual_0_r_gripper_r_finger_tip_link', 
-                    'visual_0_l_gripper_r_finger_link', 
-                    'visual_0_l_gripper_finger_tip_link']
+        name_list = ['r_gripper_r_finger_link', 
+                    'r_gripper_r_finger_tip_link', 
+                    'l_gripper_r_finger_link', 
+                    'l_gripper_finger_tip_link']
 
-        if name in name_list:
-            mat_rot = mathutils.Euler((math.pi, 0.0, 0.0), 'XYZ').to_matrix()
-            newgeom.matrix_local = matrix * mat_rot.to_4x4()
+        #location = mathutils.Matrix.Translation(viscol['pose']['translation'])
+        #rotation = mathutils.Euler(viscol['pose']['rotation_euler'], 'XYZ').to_matrix().to_4x4()
+        #mathutils.Euler((euler_rotation[0], euler_rotation[1], euler_rotation[2]), 'XYZ').to_matrix() 
+        rot_fix = mathutils.Euler((0.0, 0.0, math.pi / 2), 'XYZ').to_matrix().to_4x4()
+
+        if name == 'base_footprint':
+            # this is the inital case
+            location = mathutils.Matrix.Translation(viscol['pose']['translation'])
+            rotation = mathutils.Euler(viscol['pose']['rotation_euler'], 'XYZ').to_matrix().to_4x4()
+            matrix = location * rotation
+            #newgeom.matrix_local = matrix 
         else:
-            newgeom.matrix_local = matrix #location * rotation
+            # compute location and rotation relative to parent
+            parent = bpy.data.objects[parent_name]
+            #parent_location = parent.location
+            #mat_parent_loc = parent_location.to_matrix().to_4x4()
 
-    
+            #parent_rotation = parent.rotation_euler
+            #mat_parent_rot = parent_rotation.to_matrix().to_4x4()
+
+            # matrix_parent = mat_parent_loc * mat_parent_rot
+            location = mathutils.Matrix.Translation(viscol['pose']['translation'])
+            rotation = mathutils.Euler(viscol['pose']['rotation_euler'], 'XYZ').to_matrix().to_4x4()
+            final_matrix = location * rotation
+            #newgeom.matrix_local = final_matrix
 
 
+#        if name in name_list:
+#            mat_rot = mathutils.Euler((math.pi, 0.0, 0.0), 'XYZ').to_matrix()
+#            newgeom.matrix_local = location * rotation
+#        else:
+#            newgeom.matrix_local =  location * rotation
+
+        #bpy.data.objects[name].location = viscol['pose']['translation']
+        #bpy.data.objects[name].rotation_euler = viscol['pose']['rotation_euler']
+ 
         armature = bpy.data.objects['armature_object']
         newgeom.parent = armature
-        newgeom.parent_bone = bone_name
         newgeom.parent_type = 'BONE'
+        newgeom.parent_bone = bone_name #TODO this needs fixing
         
+        mat_rot = mathutils.Euler((- math.pi / 2, 0.0, 0.0), 'XYZ').to_matrix().to_4x4()
+        newgeom.matrix_world = matrix #* mat_rot
+        bpy.ops.object.transform_apply(location = True, scale = True, rotation = True)
+
+        log("matrix used for visual object used: '{}'".format(matrix), 'INFO')
+        log("parent_bone for visual is: '{}'".format(bone_name), 'INFO')
         # # go the vertex route: aka. create a vertex group with the same name as the bone name
         # NOTE: Vertex groups are only needed for deformation of bones, which we do not want here. 
-        # vertex_group = newgeom.vertex_groups.new(name)
-        # vertices = []
-        # for vertex in newgeom.data.vertices:
-        #     vertices.append(vertex.index)
-        # vertex_group.add(vertices, 1.0, 'ADD')
+        #vertex_group = newgeom.vertex_groups.new(name)
+        #vertices = []
+        #for vertex in newgeom.data.vertices:
+        #    vertices.append(vertex.index)
+        #vertex_group.add(vertices, 1.0, 'ADD')
 
         # Add armature modifiert
-        bpy.ops.object.modifier_add(type='ARMATURE')
-        bpy.context.object.modifiers["Armature"].object = bpy.data.objects["armature_object"]
-        bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Armature")
+       # bpy.ops.object.modifier_add(type='ARMATURE')
+       # bpy.context.object.modifiers["Armature"].object = bpy.data.objects["armature_object"]
+       # bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Armature")
         
         
         # index_list = [0]*len(newgeom.data.vertices)

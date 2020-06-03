@@ -1166,7 +1166,8 @@ def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobj
         # This part also essentially creates base_footprint
         # create new link with that name
         link = model['links'][new_link['name']]
-        model['links'][new_link['name']]['object'] = linkmodel.createLink(link, model, previous, counter)
+        #model['links'][new_link['name']]['object'] = linkmodel.createLink(link, model, previous, counter)
+        linkmodel.createLink(link, model, previous, counter)
         # add the other stuff here that the code below does
         # other stuff
         #newobjects.append(model['links'][new_link['name']]['object'])

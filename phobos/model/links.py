@@ -101,6 +101,8 @@ def createLink(link, model, previous, counter):
       : bpy_types.Object -- the newly created blender link object.
 
     """
+    
+
     log("Creating link object '{}'...".format(link['name']), 'DEBUG', prefix='\n')
     # create armature/bone
     # ---NEW ---
@@ -108,14 +110,22 @@ def createLink(link, model, previous, counter):
     bUtils.toggleLayer(defs.layerTypes['link'], True)
     bpy.ops.object.select_all(action='DESELECT')
     
+    # case: create the initial bone
     if not bpy.context.blend_data.armatures :
         log("No armatures found, result was '{}' ".format(bpy.context.blend_data.armatures), 'INFO' )
         log("Create a new armature", 'INFO')
         log("Name of root bone: '{}'".format(link['name']), 'INFO' )
+
+        # create empty 
+        empty = bpy.data.objects.new("pr2_empty", None)
+
         #Create a new armature and the coresponding Armature Object: 
         armature = bpy.data.armatures.new('robot_armature')
         armature_object = bpy.data.objects.new('armature_object', armature)
         bpy.context.scene.objects.link(armature_object)
+
+        #parent armature to empty
+        #armature.parent = empty
 
         # create root bone
         armature = bpy.data.objects['armature_object']
@@ -137,7 +147,16 @@ def createLink(link, model, previous, counter):
         mat_parent = mathutils.Matrix.Translation((0.0, 0.0, 0.0)) #translation
         mat_final = mat_parent * mat_current
 
+        #generate bone
+        bone.use_deform = False
+    
+        bpy.ops.object.mode_set(mode='OBJECT', toggle=True) # exit edit mode
+        newlink = bone
+        bone_name = bone.name
+        parent_name = 'base_footprint'
+    #-------------------------------------------------------------------------------------------------------------------------
     else:
+        # case: armature and initial bone exists. Create next bone.
         armature = bpy.data.objects['armature_object']
         bpy.context.scene.objects.active = armature
         bpy.ops.object.mode_set(mode='EDIT', toggle=False)
@@ -146,53 +165,94 @@ def createLink(link, model, previous, counter):
         parent_name = model['links'][model['links'][link['name']]['parent']]['name']
         parent = model['links'][parent_name]
      
-        parent_pose = armature.data.edit_bones[parent_name].tail
+        #parent_pose = armature.data.edit_bones[parent_name].tail
+        parent_pose = model['links'][parent_name]['pose']['translation']
 
-        armature.data.edit_bones[parent_name].select_tail=True # select the tail to extrude from
+        # armature.data.edit_bones[parent_name].select_tail=True # select the tail to extrude from
         # make sure bone length can't be 0
         log("Parent_Pose: '{}'".format(parent_pose), 'WARNING')
         log("Child_pose: '{}'".format(pose), 'WARNING')
 
-        if (pose[0] == 0.0 and pose[1] == 0.0 and pose[2] == 0.0) or parent_pose == pose:
-            pose = (pose[0], pose[1], pose[2] + 0.001)
-            log("Pose of vector would have been 0, increased. new pose is: '{}'".format(pose), 'WARNING')
+        if not ((pose[0] == 0.0 and pose[1] == 0.0 and pose[2] == 0.0) or parent_pose == pose):
+            # case: child_pose is not 0, therefore bone should be created.
+            # Generate matrix for Bone: 
+            log("Child Pose was not 0. Create bone.", 'INFO')
+            mat_location = mathutils.Matrix.Translation((pose[0], pose[1], pose[2])) # make location matrix
+            #log("mat_location: '{}'".format(mat_location), 'WARNING')
 
-        # Generate matrix for Bone: 
-         
-        mat_location = mathutils.Matrix.Translation((pose[0], pose[1], pose[2])) # make location matrix
-        log("mat_location: '{}'".format(mat_location), 'WARNING')
+            euler_rotation = model['links'][link['name']]['pose']['rotation_euler'] # get euler
 
-        euler_rotation = model['links'][link['name']]['pose']['rotation_euler'] # get euler
+            mat_rotation = mathutils.Euler((euler_rotation[0], euler_rotation[1], euler_rotation[2]), 'XYZ').to_matrix() # make rotation matrix
+            mat_current = mat_location.to_4x4()  # combine them into one
+            # check if parent_pose was also 0.0 - find the last parent which had a pose.
+            log("pre-while parent name'{}'".format(parent_name), 'INFO')
+            log("pre-while parent pose'{}'".format(parent_pose), 'INFO')
+            while parent_pose[0] == 0.0 and parent_pose[1] == 0.0 and parent_pose[2] == 0.0 and parent_name != 'base_footprint':
+                parent = model['links'][parent_name]['parent']
+                log("in-while parent'{}'".format(parent), 'INFO') 
+                parent_name = model['links'][parent]['name']
+                parent_pose = model['links'][parent_name]['pose']['translation'] 
+                log("in-while parent name'{}'".format(parent_name), 'INFO')   
+                log("in-while parent pose'{}'".format(parent_pose), 'INFO')
 
-        mat_rotation = mathutils.Euler((euler_rotation[0], euler_rotation[1], euler_rotation[2]), 'XYZ').to_matrix() # make rotation matrix
-        mat_current = mat_location.to_4x4()  # combine them into one
-        mat_parent = mathutils.Matrix.Translation((parent_pose[0], parent_pose[1], parent_pose[2])) #translation
-        mat_final = mat_parent * mat_current * mat_rotation.to_4x4()
+            parent_pose = armature.data.edit_bones[parent_name].tail
+
+            log("parent pose in armature: '{}'".format(parent_pose), 'INFO')
+            armature.data.edit_bones[parent_name].select_tail=True 
+
+            mat_parent = mathutils.Matrix.Translation((parent_pose[0], parent_pose[1], parent_pose[2])).to_4x4() #translation
+            mat_final = mat_parent * mat_current * mat_rotation.to_4x4()
+            
+            bone = armature.data.edit_bones.new(link['name'])
+            bone.matrix = mat_final
+            log("Resulting pose: '{}'".format(armature.data.edit_bones[link['name']].tail), 'WARNING')
+
+            bone.parent = armature.data.edit_bones[parent_name] # parent bone
+            bone.use_connect = True
+            #bone.use_relative_parent = True
+
+
+            # add the added bone and it's pose to the relative poses list
+            # model['links'][model['links'][link['name']]['parent']]['pose']['translation']
+           # model['links'][model['links'][link['name']]['parent']] = parent
+           # model['links'][parent_name]['pose']['translation'] = [pose[0], pose[1], pose[2]] ## if the pose was changed this is important
+           # model['links'][model['links'][link['name']]['parent']]['pose']['translation'] = [pose[0], pose[1], pose[2]]
+            log("Current Bone: '{}'".format(link['name']), 'INFO')
+            log("Parent Bone: '{}'".format(parent_name), 'INFO')
         
-        bone = armature.data.edit_bones.new(link['name'])
-        bone.matrix = mat_final
-        log("Resulting pose: '{}'".format(armature.data.edit_bones[link['name']].tail), 'WARNING')
-
-        bone.parent = armature.data.edit_bones[parent_name] # parent  bone
-        bone.use_connect = True
-        bone.use_relative_parent = True
-
-
-        # add the added bone and it's pose to the relative poses list
-        model['links'][model['links'][link['name']]['parent']]['pose']['translation'] = [pose[0], pose[1], pose[2]] ## if the pose was changed this is important
-        log("Current Bone: '{}'".format(link['name']), 'INFO')
-        log("Parent Bone: '{}'".format(model['links'][model['links'][link['name']]['parent']]['name']), 'INFO')
-        
-    # general properties of bones: 
-    bone.use_deform = False
+            # general properties of bones: 
+            bone.use_deform = False
     
-    bpy.ops.object.mode_set(mode='OBJECT', toggle=True) # exit edit mode
-    newlink = bone
-    log("Bone name: '{}'".format(bone.name), 'INFO')
-    log("Bone length: '{}'".format(bone.length), 'INFO')
-    log("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 'INFO')
-    # spawn meshes of bones in Armature
-    
+            bpy.ops.object.mode_set(mode='OBJECT', toggle=True) # exit edit mode
+            newlink = bone
+            log("Bone name: '{}'".format(bone.name), 'INFO')
+            log("Bone length: '{}'".format(bone.length), 'INFO')
+            log("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 'INFO')
+            # spawn meshes of bones in Armature
+            bone_name = bone.name
+        else: 
+            # if child pose is 0
+            # if bone is of size 0, return the matrix of parent bone as location
+            log("got into else with child_pose: '{}'".format(pose))
+            parent_name = model['links'][model['links'][link['name']]['parent']]['name']
+            parent_pose = model['links'][parent_name]['pose']['translation']
+            
+            # check if parent_pose was also 0.0
+            while parent_pose[0] == 0.0 and parent_pose[1] == 0.0 and parent_pose[2] == 0.0:
+                parent = model['links'][parent_name]['parent']
+                log("in-while parent'{}'".format(parent), 'INFO') 
+                parent_name = model['links'][parent]['name']
+                parent_pose = model['links'][parent_name]['pose']['translation']    
+
+            parent_pose = armature.data.edit_bones[parent_name].tail
+            mat_final = mathutils.Matrix.Translation((parent_pose[0], parent_pose[1], parent_pose[2])).to_4x4()
+            bone_name = parent_name
+
+            newlink = model['links'][link['name']]
+            bpy.ops.object.mode_set(mode='OBJECT', toggle=True) 
+
+    newlink = model['links'][link['name']]     
+    bpy.ops.object.transform_apply(location = True, scale = True, rotation = True)         
     bUtils.update()
     
     # -----
@@ -247,8 +307,9 @@ def createLink(link, model, previous, counter):
     )
 
     #for vis in visuals:
+    log("Published matrix: '{}'".format(mat_final), 'INFO')
     try: 
-        mesh = geometrymodel.createGeometry(visuals[0], 'visual', newlink, mat_final, bone.name) #TODO this is currently buggy
+        mesh = geometrymodel.createGeometry(visuals[0], 'visual', newlink, mat_final, parent_name, bone_name) #TODO this is currently buggy
     except IndexError:
         log("Index out of Bounds. No Visual.", 'WARNING')
 
