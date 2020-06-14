@@ -275,11 +275,7 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, parent_name, bone_name ):
             #newgeom.matrix_local = final_matrix
 
 
-#        if name in name_list:
-#            mat_rot = mathutils.Euler((math.pi, 0.0, 0.0), 'XYZ').to_matrix()
-#            newgeom.matrix_local = location * rotation
-#        else:
-#            newgeom.matrix_local =  location * rotation
+        
 
         #bpy.data.objects[name].location = viscol['pose']['translation']
         #bpy.data.objects[name].rotation_euler = viscol['pose']['rotation_euler']
@@ -288,9 +284,14 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, parent_name, bone_name ):
         newgeom.parent = armature
         newgeom.parent_type = 'BONE'
         newgeom.parent_bone = bone_name #TODO this needs fixing
-        
-        mat_rot = mathutils.Euler((- math.pi / 2, 0.0, 0.0), 'XYZ').to_matrix().to_4x4()
-        newgeom.matrix_world = matrix #* mat_rot
+
+        # this is pr2-urdf-specific
+        if name in name_list:
+            mat_rot = mathutils.Euler((math.pi, 0.0, 0.0), 'XYZ').to_matrix().to_4x4()
+            newgeom.matrix_world = matrix * mat_rot
+        else:
+            newgeom.matrix_world =  matrix
+
         bpy.ops.object.transform_apply(location = True, scale = True, rotation = True)
 
         log("matrix used for visual object used: '{}'".format(matrix), 'INFO')
