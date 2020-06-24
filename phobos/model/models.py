@@ -37,6 +37,7 @@ from phobos.phoboslog import log
 from phobos.utils.general import roundFloatsInDict, sortListsInDict
 from phobos.model.poses import deriveObjectPose
 from phobos.model.geometries import deriveGeometry
+from phobos.model.geometries import moveAllMeshes
 from phobos.defs import linkobjignoretypes
 
 
@@ -1166,13 +1167,7 @@ def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobj
         # This part also essentially creates base_footprint
         # create new link with that name
         link = model['links'][new_link['name']]
-        #model['links'][new_link['name']]['object'] = linkmodel.createLink(link, model, previous, counter)
-        linkmodel.createLink(link, model, previous, counter)
-        # add the other stuff here that the code below does
-        # other stuff
-        #newobjects.append(model['links'][new_link['name']]['object'])
-        #newobjects.extend(model['links'][new_link['name']]['object'].children)
-        # end other stuff
+        linkmodel.createLink(link, model, visited_links, counter)
         # add new link to the list of visited ones
         link_name = new_link['name']
         visited_links[link_name] = new_link
@@ -1186,6 +1181,8 @@ def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobj
         previous = link['name'] # model['links'][child]['parent']      
         counter = counter + 1
         buildSkeletonFromDictionary(model, visited_links, model['links'][child], previous, newobjects, counter)
+
+
 
 def buildModelFromDictionary(model):
     """Creates the Blender representation of the imported model, using a model dictionary.
@@ -1212,6 +1209,15 @@ def buildModelFromDictionary(model):
     visited_links = {}
     relative_poses = {}
     buildSkeletonFromDictionary(model, visited_links, model['links']['base_footprint'], previous, newobjects, counter)
+    # after the skeleton is build, move and parent the meshes
+    visited_meshes = {}
+    unvisited_meshes = []
+    moveAllMeshes(model, visited_meshes, 'base_footprint', unvisited_meshes)
+    for mesh in bpy.data.objects:
+        if mesh != bpy.data.objects['pr2_empty'] and mesh != bpy.data.objects['armature_object']:
+            moveAllMeshes(model, visited_meshes, mesh.name, unvisited_meshes)
+    log("All unvisited meshes are: '{}'".format(unvisited_meshes), 'INFO')
+
     
     # end new
 

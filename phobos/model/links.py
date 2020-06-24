@@ -24,6 +24,8 @@ import phobos.utils.editing as eUtils
 import phobos.model.inertia as inertia
 import phobos.model.geometries as geometrymodel
 from phobos.phoboslog import log
+import operator
+import numpy
 
 
 def getGeometricElements(link):
@@ -75,7 +77,7 @@ def collectParentMatrixes(model, link, pose, mat, armature):
 
 
 # DOCU we should add the parameters, that can be inserted in the dictionary
-def createLink(link, model, previous, counter):
+def createLink(link, model, visited_links, counter):
     """Creates the blender representation of a given link and its parent joint.
     
     The link is added to the link layer.
@@ -110,6 +112,9 @@ def createLink(link, model, previous, counter):
     bUtils.toggleLayer(defs.layerTypes['link'], True)
     bpy.ops.object.select_all(action='DESELECT')
     
+    visuals, collisions = getGeometricElements(link)
+    newlink = model['links'][link['name']]  
+
     # case: create the initial bone
     if not bpy.context.blend_data.armatures :
         log("No armatures found, result was '{}' ".format(bpy.context.blend_data.armatures), 'INFO' )
@@ -118,6 +123,8 @@ def createLink(link, model, previous, counter):
 
         # create empty 
         empty = bpy.data.objects.new("pr2_empty", None)
+        bpy.context.scene.objects.link(empty)
+        bpy.context.scene.objects.active = empty
 
         #Create a new armature and the coresponding Armature Object: 
         armature = bpy.data.armatures.new('robot_armature')
@@ -125,7 +132,7 @@ def createLink(link, model, previous, counter):
         bpy.context.scene.objects.link(armature_object)
 
         #parent armature to empty
-        #armature.parent = empty
+        armature_object.parent = empty
 
         # create root bone
         armature = bpy.data.objects['armature_object']
@@ -157,15 +164,17 @@ def createLink(link, model, previous, counter):
     #-------------------------------------------------------------------------------------------------------------------------
     else:
         # case: armature and initial bone exists. Create next bone.
+        bpy.ops.object.select_all(action='DESELECT')
         armature = bpy.data.objects['armature_object']
         bpy.context.scene.objects.active = armature
         bpy.ops.object.mode_set(mode='EDIT', toggle=False)
 
-        pose = model['links'][link['name']]['pose']['translation'] #translation of current   
+        pose = model['links'][link['name']]['pose']['translation'] #translation of current. should be used for head  
         parent_name = model['links'][model['links'][link['name']]['parent']]['name']
         parent = model['links'][parent_name]
      
         #parent_pose = armature.data.edit_bones[parent_name].tail
+        #THIS MIGHT NEED TO BE REMOVED
         parent_pose = model['links'][parent_name]['pose']['translation']
 
         # armature.data.edit_bones[parent_name].select_tail=True # select the tail to extrude from
@@ -198,25 +207,28 @@ def createLink(link, model, previous, counter):
             parent_pose = armature.data.edit_bones[parent_name].tail
 
             log("parent pose in armature: '{}'".format(parent_pose), 'INFO')
-            armature.data.edit_bones[parent_name].select_tail=True 
+            #replace this
+            #armature.data.edit_bones[parent_name].select_tail=True 
 
             mat_parent = mathutils.Matrix.Translation((parent_pose[0], parent_pose[1], parent_pose[2])).to_4x4() #translation
             mat_final = mat_parent * mat_current * mat_rotation.to_4x4()
             
+            #This needs to happen no matter if the previous try-catch was succesfull or not
+            bUtils.toggleLayer(defs.layerTypes['link'], True)
+            armature = bpy.data.objects['armature_object']
+            bpy.context.scene.objects.active = armature
+            bpy.ops.object.mode_set(mode='EDIT')
+
             bone = armature.data.edit_bones.new(link['name'])
+            bone.parent = armature.data.edit_bones[parent_name]
             bone.matrix = mat_final
             log("Resulting pose: '{}'".format(armature.data.edit_bones[link['name']].tail), 'WARNING')
 
-            bone.parent = armature.data.edit_bones[parent_name] # parent bone
-            bone.use_connect = True
+             # parent bone
+            bone.use_connect = True # TODO only connect in some cases
             #bone.use_relative_parent = True
 
 
-            # add the added bone and it's pose to the relative poses list
-            # model['links'][model['links'][link['name']]['parent']]['pose']['translation']
-           # model['links'][model['links'][link['name']]['parent']] = parent
-           # model['links'][parent_name]['pose']['translation'] = [pose[0], pose[1], pose[2]] ## if the pose was changed this is important
-           # model['links'][model['links'][link['name']]['parent']]['pose']['translation'] = [pose[0], pose[1], pose[2]]
             log("Current Bone: '{}'".format(link['name']), 'INFO')
             log("Parent Bone: '{}'".format(parent_name), 'INFO')
         
@@ -251,7 +263,7 @@ def createLink(link, model, previous, counter):
             newlink = model['links'][link['name']]
             bpy.ops.object.mode_set(mode='OBJECT', toggle=True) 
 
-    newlink = model['links'][link['name']]     
+       
     bpy.ops.object.transform_apply(location = True, scale = True, rotation = True)         
     bUtils.update()
     
@@ -273,7 +285,7 @@ def createLink(link, model, previous, counter):
     #nUtils.safelyName(newlink, link['name'])
 
     # set the size of the link
-    visuals, collisions = getGeometricElements(link)
+    
     if visuals or collisions:
         scale = max(
             (geometrymodel.getLargestDimension(e['geometry']) for e in visuals + collisions)
@@ -307,9 +319,10 @@ def createLink(link, model, previous, counter):
     )
 
     #for vis in visuals:
-    log("Published matrix: '{}'".format(mat_final), 'INFO')
+    # moved up for reasons
+    #log("Published matrix: '{}'".format(mat_final), 'INFO')
     try: 
-        mesh = geometrymodel.createGeometry(visuals[0], 'visual', newlink, mat_final, parent_name, bone_name) #TODO this is currently buggy
+        mesh = geometrymodel.createGeometry(visuals[0], 'visual', newlink) #TODO this is currently buggy
     except IndexError:
         log("Index out of Bounds. No Visual.", 'WARNING')
 
@@ -320,6 +333,19 @@ def createLink(link, model, previous, counter):
 
     #for col in collisions:
     #    geometrymodel.createGeometry(col, 'collision', newlink)
+
+
+    #load mesh 
+    #try: 
+        # change mode to OBJECT, spawn mesh, change back to EDIT
+    #    bpy.ops.object.mode_set(mode='OBJECT')
+    #    mesh_name = geometrymodel.createGeometry(visuals[0], 'visual', newlink) #TODO this is currently buggy
+    #    dimensions = bpy.data.objects[mesh_name].dimensions
+    #    log("Dimensions of mesh: '{}'".format(dimensions), 'INFO')
+    #    bpy.ops.object.select_all(action='DESELECT')
+    #except IndexError:
+    #    dimensions = (0.0, 0.0, 0.0)
+    #    log("Index out of Bounds. No Visual.", 'WARNING')
     return newlink
 
 

@@ -13,6 +13,7 @@ import os
 import bpy
 import mathutils
 import math
+import queue
 import phobos.defs as defs
 import phobos.utils.naming as nUtils
 import phobos.utils.blender as bUtils
@@ -22,6 +23,7 @@ import phobos.io.meshes.meshes as meshes
 from phobos.model.materials import assignMaterial
 from phobos.phoboslog import log
 from phobos.utils.validation import validate
+
 
 
 def getLargestDimension(geometry):
@@ -104,7 +106,7 @@ def deriveScale(obj):
     return list(obj.matrix_world.to_scale())
 
 
-def createGeometry(viscol, geomsrc, linkobj, matrix, parent_name, bone_name ):
+def createGeometry(viscol, geomsrc, linkobj):
     """Creates Blender object for visual or collision objects.
     
     If the creation fails, nothing is returned.
@@ -251,17 +253,17 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, parent_name, bone_name ):
         #location = mathutils.Matrix.Translation(viscol['pose']['translation'])
         #rotation = mathutils.Euler(viscol['pose']['rotation_euler'], 'XYZ').to_matrix().to_4x4()
         #mathutils.Euler((euler_rotation[0], euler_rotation[1], euler_rotation[2]), 'XYZ').to_matrix() 
-        rot_fix = mathutils.Euler((0.0, 0.0, math.pi / 2), 'XYZ').to_matrix().to_4x4()
+        #rot_fix = mathutils.Euler((0.0, 0.0, math.pi / 2), 'XYZ').to_matrix().to_4x4()
 
         if name == 'base_footprint':
             # this is the inital case
             location = mathutils.Matrix.Translation(viscol['pose']['translation'])
             rotation = mathutils.Euler(viscol['pose']['rotation_euler'], 'XYZ').to_matrix().to_4x4()
-            matrix = location * rotation
+            final_matrix = location * rotation
             #newgeom.matrix_local = matrix 
         else:
             # compute location and rotation relative to parent
-            parent = bpy.data.objects[parent_name]
+            #parent = bpy.data.objects[parent_name]
             #parent_location = parent.location
             #mat_parent_loc = parent_location.to_matrix().to_4x4()
 
@@ -279,23 +281,23 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, parent_name, bone_name ):
 
         #bpy.data.objects[name].location = viscol['pose']['translation']
         #bpy.data.objects[name].rotation_euler = viscol['pose']['rotation_euler']
- 
-        armature = bpy.data.objects['armature_object']
-        newgeom.parent = armature
-        newgeom.parent_type = 'BONE'
-        newgeom.parent_bone = bone_name #TODO this needs fixing
+        #! This works!!!
+        #armature = bpy.data.objects['armature_object']
+        #newgeom.parent = armature
+        #newgeom.parent_type = 'OBJECT'
+        #newgeom.parent_bone = bone_name #TODO this needs fixing
 
         # this is pr2-urdf-specific
         if name in name_list:
             mat_rot = mathutils.Euler((math.pi, 0.0, 0.0), 'XYZ').to_matrix().to_4x4()
-            newgeom.matrix_world = matrix * mat_rot
+            newgeom.matrix_world = final_matrix * mat_rot
         else:
-            newgeom.matrix_world =  matrix
+            newgeom.matrix_world =  final_matrix
 
         bpy.ops.object.transform_apply(location = True, scale = True, rotation = True)
 
-        log("matrix used for visual object used: '{}'".format(matrix), 'INFO')
-        log("parent_bone for visual is: '{}'".format(bone_name), 'INFO')
+        #log("matrix used for visual object used: '{}'".format(matrix), 'INFO')
+        #log("parent_bone for visual is: '{}'".format(bone_name), 'INFO')
         # # go the vertex route: aka. create a vertex group with the same name as the bone name
         # NOTE: Vertex groups are only needed for deformation of bones, which we do not want here. 
         #vertex_group = newgeom.vertex_groups.new(name)
@@ -312,9 +314,7 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, parent_name, bone_name ):
         
         # index_list = [0]*len(newgeom.data.vertices)
         # newgeom.data.vertices.foreach_get('index', index_list)
-        # newgeom.vertex_groups[bone_name].add(index_list, 1, 'REPLACE')
-
-        
+        # newgeom.vertex_groups[bone_name].add(index_list, 1, 'REPLACE')    
 
     # scale imported object
     if 'scale' in geom:
@@ -322,5 +322,146 @@ def createGeometry(viscol, geomsrc, linkobj, matrix, parent_name, bone_name ):
 
     # make object smooth
     eUtils.smoothen_surface(newgeom) # TODO comment this back in? 
+    
+    #parent mesh to empty for now
+    bpy.data.objects[name].parent = bpy.data.objects["pr2_empty"]
 
-    return newgeom
+    return name
+
+def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
+    log("-----------------------------------------------", 'INFO')
+    log("current: '{}'".format(current), 'INFO')
+    bpy.ops.object.mode_set(mode='OBJECT') # go back into object mode
+    bpy.ops.object.select_all(action='DESELECT')
+
+    # Start with base_footprint
+    #new_link = model['links'][current] # initial mesh should be bf
+    name = current
+    log("Mesh to move: '{}’".format(name), 'INFO')
+
+    empty = bpy.data.objects['pr2_empty'] 
+    bpy.context.scene.objects.active = empty
+
+    if name not in visited_meshes:
+        # access mesh
+        try:
+            mesh = bpy.data.objects[name] #the actuall mesh
+            log("accessing mesh was succesfull.", 'INFO')
+            # find the bone to parent the mesh to
+            # access armature and switch into EDIT mode
+            armature = bpy.data.objects['armature_object']
+            bpy.ops.object.select_all(action='DESELECT')
+            armature.select = True
+            bpy.context.scene.objects.active = armature
+            bpy.ops.object.mode_set(mode='EDIT')
+
+            # find the bone to parent the object to.
+            parent_bone = ''
+            try:
+                log("Try to find bone with same name...", 'INFO')
+                # check if a bone with the same name as the mesh exists
+                parent_bone = armature.data.edit_bones[name]
+                parent_bone_name = name
+            except KeyError:
+                log("Exception. check if link has child?", 'INFO')
+                # if not, check if a child of it exists as bone
+                children = model['links'][name]['children']
+                children_of_children = []
+                depth = 2 # amount of layers to go through 
+                q = queue.Queue()
+                q.put(name)
+                
+                while not q.empty:
+                    log("in while... queue: '{}'".format(queue), 'INFO')
+                    children = model['links'][q.get()]['children']
+                    # add children to temp list
+                    for child in children:
+                        children_of_children.append(child)
+                        if depth > 0:
+                            q.put(child)
+                    depth = depth - 1
+                    log("depth level: '{}', current list: '{}'".format(depth, queue), 'ERROR')
+
+                log("into for loop we go!", 'INFO')
+                for child in children_of_children: # make sure nill entries are removed from the list
+                    if child != []:
+                        children.append(child)
+
+                log("list of children to go though: '{}'".format(children), 'INFO')
+
+                if children != []:
+                    for child in children:
+                        try:
+                            log("try to set the child '{}' as bone-parent".format(child), 'INFO')
+                            parent_bone_name = child
+                            log("Select a new child bone: '{}’".format(parent_bone_name), 'INFO')
+                            parent_bone = armature.data.edit_bones[parent_bone_name]
+                            break
+                        except:
+                            log("No bone with this name '{}' found. try next child.".format(parent_bone_name), 'WARNING')
+                else:
+                    log("No children found. Probably leaf. Try parents instead.", 'INFO')
+                    
+                log("TEST", 'WARNING')
+                counter = 2
+                potential_parent = name
+                while counter <= 2 and parent_bone == '':
+                    # try to bind to parent instead.
+                    log("parenting to child failed. try to parent to parent", 'INFO')
+                    try:
+                        parent_bone_name = model['links'][potential_parent]['parent']
+                        parent_bone = armature.data.edit_bones[parent_bone_name]
+                        log("found parent bone with name: '{}'".format(parent_bone_name), 'INFO')
+                        break
+                    except KeyError:
+                        log("parenting to parent '{}' failed.".format(parent_bone_name), 'WARNING')
+                        counter = counter -1
+                        #potential_parent = model['links'][potential_parent]['parent']
+                        potential_parent = model['links'][model['links'][potential_parent]['parent']]['name']
+                        log("counter: '{}'".format(counter), 'INFO')
+                        log("new potential parent: '{}'".format(potential_parent), 'INFO')
+                        #raise
+                    log("try again with parent of parent", 'INFO')
+
+
+            log("parent_bone name: '{}'".format(parent_bone), 'INFO')           
+            # assume the above worked, and we now have a parent bone
+            armature.data.edit_bones.active = parent_bone
+
+            bpy.ops.object.mode_set(mode='OBJECT') # go back into object mode
+            bpy.ops.object.select_all(action='DESELECT')
+            mesh.select = True
+            armature.select = True
+            bpy.context.scene.objects.active = armature
+            # bpy.ops.object.parent_set(type='BONE')
+            mesh.parent = armature
+            mesh.parent_type = 'BONE'
+            mesh.parent_bone = parent_bone_name
+            log("Parent is set to '{}'".format(parent_bone_name), 'INFO')
+            # parenting was successfull, so put the mesh into the list of visited meshes
+            visited_meshes[name] = mesh
+
+        except:
+            log("In moveAllMeshes: No mesh for '{}' exists. Maybe it was already processed?.".format(name), 'WARNING')
+            unvisited_meshes.append(name)
+            raise
+            
+    
+    else:
+        log("Mesh is already in visited_meshes list with the name '{}'".format(name), 'ERROR')
+
+    # after everything is done, add this link to visited links
+    log("all objects of type mesh: '{}'".format(bpy.data.meshes), 'INFO')
+    log("all objects in visited meshes: '{}'".format(len(visited_meshes)), 'INFO')
+
+    #children = model['links'][name]['children']
+    #for child in children:
+    #    if child != []:
+    #        moveAllMeshes(model, visited_meshes, child, unvisited_meshes)
+    
+    
+
+    
+        
+        
+
