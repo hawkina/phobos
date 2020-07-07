@@ -207,7 +207,7 @@ def getRoot(obj=None):
     """
     obj = bpy.context.active_object if obj is None else obj
     if obj is None:
-        log("No root object found! Check your object selection.", "ERROR")
+        #log("No root object found! Check your object selection.", "ERROR") #TODO: put it back in. it's annoying though.
         return None
     child = obj
     while child.parent and not isRoot(child):

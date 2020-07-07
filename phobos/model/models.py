@@ -1162,7 +1162,7 @@ def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobj
     # create a list of the poses within blender and the names of the links as keys to keep them relative
     # check if the new link which is supposed to be added is already in the visited_links list
     # essentially this is depth first search
-    log("new link to add: '{}'".format(new_link['name']), 'INFO')
+
     if new_link['name'] not in visited_links:
         # This part also essentially creates base_footprint
         # create new link with that name

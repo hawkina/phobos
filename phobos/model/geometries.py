@@ -83,9 +83,9 @@ def deriveGeometry(obj, adjust=False, **kwargs):
 
     elif gtype == 'mesh':
         geometry['filename'] = obj.data.name
-        geometry['scale'] = deriveScale(obj)
+        #geometry['scale'] = deriveScale(obj) 
         # FIXME: is this needed to calculate an approximate inertia
-        geometry['size'] = list(obj.dimensions)
+        #geometry['size'] = list(obj.dimensions)
 
     return geometry
 
@@ -204,7 +204,8 @@ def createGeometry(viscol, geomsrc, linkobj):
             viscol['name'], geom['type'], dimensions, phobostype=geomsrc
         )
         newgeom.select = True
-        bpy.ops.object.transform_apply(scale=True)
+        # HASU: used to contain scale=True, removed for testing
+        #bpy.ops.object.transform_apply(scale=False)
 
     # from here it's the same for both meshes and primitives
     newgeom['geometry/type'] = geom['type']
@@ -219,7 +220,6 @@ def createGeometry(viscol, geomsrc, linkobj):
         if prop.startswith('$'):
             for tag in viscol[prop]:
                 newgeom[prop[1:] + '/' + tag] = viscol[prop][tag]
-
     # make sure the name of the mesh fits the name of the bone
     name = viscol['name'].replace('visual_0_', '')
     name = name.replace('.000', '') 
@@ -244,22 +244,18 @@ def createGeometry(viscol, geomsrc, linkobj):
         #bpy.ops.object.parent_set(type='BONE')
         #newgeom.parent_set(type='BONE'
 
-        # "one finger is flipped"-issue fix: if it's the problem finger, flip 180°
-        name_list = ['r_gripper_r_finger_link', 
-                    'r_gripper_r_finger_tip_link', 
-                    'l_gripper_r_finger_link', 
-                    'l_gripper_finger_tip_link']
-
         #location = mathutils.Matrix.Translation(viscol['pose']['translation'])
         #rotation = mathutils.Euler(viscol['pose']['rotation_euler'], 'XYZ').to_matrix().to_4x4()
         #mathutils.Euler((euler_rotation[0], euler_rotation[1], euler_rotation[2]), 'XYZ').to_matrix() 
         #rot_fix = mathutils.Euler((0.0, 0.0, math.pi / 2), 'XYZ').to_matrix().to_4x4()
 
+        # set current scale as default. otherwise there will eb scalign issues!
+        bpy.ops.object.transform_apply(scale = True) 
         if name == 'base_footprint':
             # this is the inital case
             location = mathutils.Matrix.Translation(viscol['pose']['translation'])
             rotation = mathutils.Euler(viscol['pose']['rotation_euler'], 'XYZ').to_matrix().to_4x4()
-            final_matrix = location * rotation
+            final_matrix = rotation * location
             #newgeom.matrix_local = matrix 
         else:
             # compute location and rotation relative to parent
@@ -273,11 +269,8 @@ def createGeometry(viscol, geomsrc, linkobj):
             # matrix_parent = mat_parent_loc * mat_parent_rot
             location = mathutils.Matrix.Translation(viscol['pose']['translation'])
             rotation = mathutils.Euler(viscol['pose']['rotation_euler'], 'XYZ').to_matrix().to_4x4()
-            final_matrix = location * rotation
+            final_matrix = rotation * location 
             #newgeom.matrix_local = final_matrix
-
-
-        
 
         #bpy.data.objects[name].location = viscol['pose']['translation']
         #bpy.data.objects[name].rotation_euler = viscol['pose']['rotation_euler']
@@ -287,15 +280,10 @@ def createGeometry(viscol, geomsrc, linkobj):
         #newgeom.parent_type = 'OBJECT'
         #newgeom.parent_bone = bone_name #TODO this needs fixing
 
-        # this is pr2-urdf-specific
-        if name in name_list:
-            mat_rot = mathutils.Euler((math.pi, 0.0, 0.0), 'XYZ').to_matrix().to_4x4()
-            newgeom.matrix_world = final_matrix * mat_rot
-        else:
-            newgeom.matrix_world =  final_matrix
 
-        bpy.ops.object.transform_apply(location = True, scale = True, rotation = True)
-
+        newgeom.matrix_world =  final_matrix
+        # HaSu: Scale=true set to false for testing
+        bpy.ops.object.transform_apply(location = True, rotation = True)
         #log("matrix used for visual object used: '{}'".format(matrix), 'INFO')
         #log("parent_bone for visual is: '{}'".format(bone_name), 'INFO')
         # # go the vertex route: aka. create a vertex group with the same name as the bone name
@@ -317,16 +305,37 @@ def createGeometry(viscol, geomsrc, linkobj):
         # newgeom.vertex_groups[bone_name].add(index_list, 1, 'REPLACE')    
 
     # scale imported object
-    if 'scale' in geom:
-        newgeom.scale = geom['scale']
+    #if 'scale' in geom:
+    #    newgeom.scale = geom['scale']
+    #    log("Scale is: '{}'".format(geom['scale']), 'WARNING')
 
     # make object smooth
     eUtils.smoothen_surface(newgeom) # TODO comment this back in? 
-    
     #parent mesh to empty for now
     bpy.data.objects[name].parent = bpy.data.objects["pr2_empty"]
 
+    # apply scale to mesh since the import apperently fales to do so: 
+    #bpy.data.objects[name].scale = (0.1, 0.1, 0.1)
+
     return name
+
+# lists of exceptions of meshes and bones.
+# this is robot and maybe even urdf specific
+# TODO make these optional depending on robot model?
+# these mostly concern the arms
+move_back_meshes = ['r_upper_arm_roll_link', 'r_upper_arm_link', 'r_elbow_flex_link',
+                    'r_forearm_roll_link', 'r_forearm_cam_frame', 'r_forearm_cam_optical_frame',
+                    'r_forearm_link', 'r_wrist_flex_link', 'r_wrist_roll_link', 'r_gripper_palm_link',
+                    'r_shoulder_pan_link', 'r_shoulder_lift_link',
+                    
+                    'l_upper_arm_roll_link', 'l_upper_arm_link', 'l_elbow_flex_link',
+                    'l_forearm_roll_link', 'l_forearm_cam_frame', 'l_forearm_cam_optical_frame',
+                    'l_forearm_link', 'l_wrist_flex_link', 'l_wrist_roll_link', 'l_gripper_palm_link',
+                    'l_shoulder_pan_link', 'l_shoulder_lift_link']
+
+# enforce binding to child bone instead of same name bone
+enforce_parent = ['r_shoulder_pan_link', 'r_shoulder_lift_link',
+                  'l_shoulder_pan_link', 'l_shoulder_lift_link']
 
 def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
     log("-----------------------------------------------", 'INFO')
@@ -345,7 +354,7 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
     if name not in visited_meshes:
         # access mesh
         try:
-            mesh = bpy.data.objects[name] #the actuall mesh
+            mesh = bpy.data.objects[name] #the actuall mesh     
             log("accessing mesh was succesfull.", 'INFO')
             # find the bone to parent the mesh to
             # access armature and switch into EDIT mode
@@ -423,6 +432,21 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
                         #raise
                     log("try again with parent of parent", 'INFO')
 
+            # enforce setting child_link as parent_bone for some meshes
+            if name in enforce_parent:
+                # find usable child
+                child = model['links'][name]['children']
+                child_search = True
+                while child_search:
+                    child = child[0]
+                    try:
+                        armature.data.bones[child]
+                        child_search = False
+                        parent_bone_name = child
+                    except KeyError:
+                        log("child with name '{}' does not exist. try next.".format(child), 'INFO')
+                        child = model['links'][child]['children']
+
 
             log("parent_bone name: '{}'".format(parent_bone), 'INFO')           
             # assume the above worked, and we now have a parent bone
@@ -433,7 +457,12 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
             mesh.select = True
             armature.select = True
             bpy.context.scene.objects.active = armature
-            # bpy.ops.object.parent_set(type='BONE')
+
+            
+
+            #    parent_bone_name = model['links'][model['links'][parent_bone_name]['parent']]['name']
+            #    log("Enforced parent_bone to be not the same as name, but the parent of parent.", 'INFO')
+
             mesh.parent = armature
             mesh.parent_type = 'BONE'
             mesh.parent_bone = parent_bone_name
@@ -441,12 +470,25 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
             # parenting was successfull, so put the mesh into the list of visited meshes
             visited_meshes[name] = mesh
 
+            # correct position of meshes where necessary. 
+            
+            # this is relevant mostly for the meshes in the arms:
+            # take the position of the bone's head instead of tail
+            if name in move_back_meshes:
+                loc_parent_bone_head = armature.data.bones[parent_bone_name].head_local
+                log("location of parent's bone head: '{}'".format(loc_parent_bone_head), 'INFO')
+                mat_loc = mathutils.Matrix.Translation((loc_parent_bone_head[0], loc_parent_bone_head[1], loc_parent_bone_head[2])).to_4x4()
+                mesh.matrix_world = mat_loc
+            else:
+                loc_parent_bone_tail = armature.data.bones[parent_bone_name].tail_local
+                log("location of parent's bone tail: '{}'".format(loc_parent_bone_tail), 'INFO')
+                mat_loc = mathutils.Matrix.Translation((loc_parent_bone_tail[0], loc_parent_bone_tail[1], loc_parent_bone_tail[2])).to_4x4()
+                mesh.matrix_world = mat_loc
+
         except:
             log("In moveAllMeshes: No mesh for '{}' exists. Maybe it was already processed?.".format(name), 'WARNING')
             unvisited_meshes.append(name)
             raise
-            
-    
     else:
         log("Mesh is already in visited_meshes list with the name '{}'".format(name), 'ERROR')
 

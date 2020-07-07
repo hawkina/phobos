@@ -74,6 +74,7 @@ def importMesh(filepath, meshtype):
     Returns:
 
     """
+    log("Meshtype: '{}'".format(meshtype), 'WARNING')
     # DOCU add some docstring
     # tag all objects
     for obj in bpy.data.objects:
@@ -96,7 +97,7 @@ def importMesh(filepath, meshtype):
     if meshtype == 'obj':
         bpy.ops.object.select_all(action='DESELECT')
         newgeom.select = True
-        bpy.ops.object.transform_apply(rotation=True)
+        bpy.ops.object.transform_apply(rotation=True, scale=False)
 
     # clean the tag
     for obj in bpy.data.objects:
@@ -116,6 +117,7 @@ def importObj(filepath):
 
     """
     # DOCU add some docstring
+    log("Importing OBJ", 'ERROR')
     bpy.ops.import_scene.obj(filepath=filepath)
 
 
@@ -129,20 +131,26 @@ def importStl(filepath):
 
     """
     # DOCU add some docstring
-    bpy.ops.import_mesh.stl(filepath=filepath)
+    log("Importing STL", 'ERROR')
+    # maybe add , use_scene_unit=False ?
+    bpy.ops.import_mesh.stl(filepath=filepath, global_scale=0.001)
 
 
 def importDae(filepath):
     """
 
     Args:
-      filepath: 
+      filepath:
 
     Returns:
 
     """
     # DOCU add some docstring
-    bpy.ops.wm.collada_import(filepath=filepath)
+    log("importing DAE", 'ERROR')
+    bpy.ops.wm.collada_import(filepath=filepath, import_units=True)
+    mesh = bpy.context.active_object
+    #mesh.scale = (0.001, 0.001, 0.001)
+    log("Scale after import: '{}'".format(mesh.scale), 'ERROR')
 
 
 def exportObj(obj, path):

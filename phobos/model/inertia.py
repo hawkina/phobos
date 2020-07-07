@@ -64,7 +64,7 @@ def createInertial(inertialdict, obj, size=0.03, errors=None, adjust=False, logg
         phobostype='inertial',
     )
     sUtils.selectObjects((inertialobject,), clear=True, active=0)
-    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.transform_apply(scale=False) # HaSu set to false for debugging
 
     # set position according to the parent link
     inertialobject.matrix_world = obj.matrix_world

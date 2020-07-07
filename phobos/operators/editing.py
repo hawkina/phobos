@@ -1349,7 +1349,7 @@ class CreateCollisionObjects(Operator):
             if vis.parent:
                 ob.select = True
 
-                bpy.ops.object.transform_apply(scale=True)
+                bpy.ops.object.transform_apply(scale=False) # HaSu commented out due to scaling issues
                 vis.parent.select = True
                 eUtils.parentObjectsTo(context.selected_objects, vis.parent)
 

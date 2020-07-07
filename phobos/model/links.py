@@ -103,8 +103,6 @@ def createLink(link, model, visited_links, counter):
       : bpy_types.Object -- the newly created blender link object.
 
     """
-    
-
     log("Creating link object '{}'...".format(link['name']), 'DEBUG', prefix='\n')
     # create armature/bone
     # ---NEW ---
@@ -238,7 +236,6 @@ def createLink(link, model, visited_links, counter):
             bpy.ops.object.mode_set(mode='OBJECT', toggle=True) # exit edit mode
             newlink = bone
             log("Bone name: '{}'".format(bone.name), 'INFO')
-            log("Bone length: '{}'".format(bone.length), 'INFO')
             log("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 'INFO')
             # spawn meshes of bones in Armature
             bone_name = bone.name
@@ -249,6 +246,8 @@ def createLink(link, model, visited_links, counter):
             parent_name = model['links'][model['links'][link['name']]['parent']]['name']
             parent_pose = model['links'][parent_name]['pose']['translation']
             
+            log("current link: '{}'".format(link['name']), 'INFO')
+            log("parent name: '{}'".format(parent_name), 'INFO')
             # check if parent_pose was also 0.0
             while parent_pose[0] == 0.0 and parent_pose[1] == 0.0 and parent_pose[2] == 0.0:
                 parent = model['links'][parent_name]['parent']
@@ -262,11 +261,9 @@ def createLink(link, model, visited_links, counter):
 
             newlink = model['links'][link['name']]
             bpy.ops.object.mode_set(mode='OBJECT', toggle=True) 
-
        
-    bpy.ops.object.transform_apply(location = True, scale = True, rotation = True)         
+    bpy.ops.object.transform_apply(location = True, scale = False, rotation = True)         
     bUtils.update()
-    
     # -----
     
     # bUtils.toggleLayer(defs.layerTypes['link'], True)
@@ -285,13 +282,13 @@ def createLink(link, model, visited_links, counter):
     #nUtils.safelyName(newlink, link['name'])
 
     # set the size of the link
-    
-    if visuals or collisions:
-        scale = max(
-            (geometrymodel.getLargestDimension(e['geometry']) for e in visuals + collisions)
-        )
-    else:
-        scale = 0.2
+    # HaSu: commented out due to scaling issues 
+    #if visuals or collisions:
+    #    scale = max(
+    #        (geometrymodel.getLargestDimension(e['geometry']) for e in visuals + collisions)
+    #    )
+    #else:
+    #    scale = 0.2
 
     # use scaling factor provided by user
     #if 'scale' in link:
@@ -346,6 +343,7 @@ def createLink(link, model, visited_links, counter):
     #except IndexError:
     #    dimensions = (0.0, 0.0, 0.0)
     #    log("Index out of Bounds. No Visual.", 'WARNING')
+
     return newlink
 
 
