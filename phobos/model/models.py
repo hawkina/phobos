@@ -39,6 +39,8 @@ from phobos.model.poses import deriveObjectPose
 from phobos.model.geometries import deriveGeometry
 from phobos.model.geometries import moveAllMeshes
 from phobos.defs import linkobjignoretypes
+from phobos.model.joints import addJointConstraints
+from phobos.model.kinematics import addPR2KinematicsConstraints
 
 
 def collectMaterials(objectlist):
@@ -1181,6 +1183,8 @@ def buildSkeletonFromDictionary(model, visited_links, new_link, previous, newobj
         previous = link['name'] # model['links'][child]['parent']      
         counter = counter + 1
         buildSkeletonFromDictionary(model, visited_links, model['links'][child], previous, newobjects, counter)
+    
+
 
 
 
@@ -1213,10 +1217,14 @@ def buildModelFromDictionary(model):
     visited_meshes = {}
     unvisited_meshes = []
     moveAllMeshes(model, visited_meshes, 'base_footprint', unvisited_meshes)
+    addJointConstraints(model, 'base_footprint')
     for mesh in bpy.data.objects:
         if mesh != bpy.data.objects['pr2_empty'] and mesh != bpy.data.objects['armature_object']:
             moveAllMeshes(model, visited_meshes, mesh.name, unvisited_meshes)
+            addJointConstraints(model, mesh.name)
     log("All unvisited meshes are: '{}'".format(unvisited_meshes), 'INFO')
+    # add IK and constraints to our build
+    addPR2KinematicsConstraints()
 
     
     # end new

@@ -23,6 +23,123 @@ import phobos.utils.io as ioUtils
 from phobos.utils.validation import validate
 
 
+exceptions = ['l_gripper_l_finger_tip_link', 'l_gripper_r_finger_tip_link',
+              'l_gripper_l_finger_link', 'l_gripper_r_finger_link',
+              
+              'r_gripper_l_finger_tip_link', 'r_gripper_r_finger_tip_link',
+              'r_gripper_l_finger_link', 'r_gripper_r_finger_link'
+              ]
+
+def addJointConstraints(model, link_name):
+    joint = ''
+    # find matching joint. meaning: e.g. r_shoulder_pan_link -> r_shoulder_pan_joint
+    for joint_name in model['joints']:
+        if model['joints'][joint_name]['child'] == link_name:
+            joint = joint_name
+            log("found matching joint name '{}'".format(joint), 'INFO')
+            log("for the link '{}'".format(link_name), 'INFO')
+            break
+
+    if joint == '':
+        log("no matching joint found. Exit.", 'ERROR')
+        return
+
+    armature = bpy.data.objects['armature_object']
+    bpy.context.scene.objects.active = armature
+    
+    #find which bone the mesh is parented to
+    try:
+        bpy.ops.object.mode_set(mode='OBJECT')
+        empty = bpy.data.objects['pr2_empty'] 
+        bpy.context.scene.objects.active = empty
+
+        mesh = bpy.data.objects[link_name]
+        bpy.context.scene.objects.active = armature
+        bone_parent = mesh.parent_bone
+        log("No mesh with that name exists. skipping. parent_bone : '{}'".format(bone_parent), 'ERROR')
+
+        # select current bone if it exists. if not, skip
+        try: 
+            bpy.context.scene.objects.active = armature
+            bone = armature.pose.bones[bone_parent]
+        except KeyError:
+            log("No bone with that name exists. skipping", 'WARNING')
+            return
+
+    except KeyError:
+        log("No mesh with this name exists. skipping.link name:  '{}'".format(link_name), 'WARNING')
+        return
+
+    # make sure the following is only applied to some bones and not all of them
+    # TODO: Check if the first if is really necessary
+    if 'arm' or 'shoulder' or 'wrist' or 'gripper' or 'finger' or 'force' or 'elbow' or 'head_pan' or 'head_tilt' in joint:
+        #check if joint is revolute
+        if model['joints'][joint]['type'] == 'revolute':
+            # get limits from joint
+            axis = model['joints'][joint]['axis']
+            limits = model['joints'][joint]['limits']
+            upper = limits['upper']
+            lower = limits['lower']
+            log("axis: '{}'".format(axis), 'ERROR')
+            log("upper: '{}'".format(upper), 'ERROR')
+            log("lower: '{}'".format(lower), 'ERROR')
+            # create Limit Rotation constraint
+            # This might not be the cleanes solution but atm we can be sure that only one constraint
+            if  len(bone.constraints) < 1:
+                constraint = bone.constraints.new('LIMIT_ROTATION')
+            else: 
+                constraint = bone.constraints[0]
+
+            constraint.owner_space = 'LOCAL_WITH_PARENT' # or LOCAL? 
+            # add constraint properties
+
+           # for a in axis:
+           #     if a == -1:
+           #         temp = upper
+           #         upper = lower
+           #         lower = temp
+
+            # check for X
+            if axis[0] != 0:
+                constraint.use_limit_x = True
+                constraint.min_x = lower
+                constraint.max_x = upper
+            else:
+                constraint.use_limit_x = True
+
+            # check for Y
+            if axis[1] != 0:
+                constraint.use_limit_y = True
+                constraint.min_y = lower
+                constraint.max_y = upper
+            else:
+                constraint.use_limit_y = True
+
+            # check for Z
+            if axis[2] != 0:
+                constraint.use_limit_z = True
+                constraint.min_z = lower
+                constraint.max_z = upper
+            else:
+                constraint.use_limit_z = True
+            
+            # these constraints need to be set for the ik 
+            if link_name in exceptions:
+                if axis[0] != 0:
+                    bone.use_ik_limit_x = True
+                    bone.ik_min_x = lower
+                    bone.ik_max_x = upper
+
+                if axis[1] != 0:
+                    bone.use_ik_limit_y = True
+                    bone.ik_min_y = lower
+                    bone.ik_max_y = upper
+
+                if axis[2] != 0:
+                    bone.use_ik_limit_z = True
+                    bone.ik_min_z = lower
+                    bone.ik_max_z = upper
+
 def createJoint(joint, linkobj=None, links=None):
     """Adds joint data to a link object.
     
@@ -598,3 +715,4 @@ def set_planar(joint):
     crot.min_z = 0
     crot.max_z = 0
     crot.owner_space = 'LOCAL'
+
