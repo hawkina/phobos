@@ -93,11 +93,11 @@ def addJointConstraints(model, link_name):
             constraint.owner_space = 'LOCAL_WITH_PARENT' # or LOCAL? 
             # add constraint properties
 
-           # for a in axis:
-           #     if a == -1:
-           #         temp = upper
-           #         upper = lower
-           #         lower = temp
+            for a in axis:
+                if a == -1:
+                    temp = upper
+                    upper = lower * -1
+                    lower = temp * -1
 
             # check for X
             if axis[0] != 0:

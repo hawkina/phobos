@@ -41,6 +41,7 @@ from phobos.model.geometries import moveAllMeshes
 from phobos.defs import linkobjignoretypes
 from phobos.model.joints import addJointConstraints
 from phobos.model.kinematics import addPR2KinematicsConstraints
+from phobos.model.kinematics import boneModificationsPR2
 
 
 def collectMaterials(objectlist):
@@ -1213,7 +1214,14 @@ def buildModelFromDictionary(model):
     visited_links = {}
     relative_poses = {}
     buildSkeletonFromDictionary(model, visited_links, model['links']['base_footprint'], previous, newobjects, counter)
-    # after the skeleton is build, move and parent the meshes
+    # after the skeleton is build, move and parent the meshes and fix some bone things
+    # modify bones
+    boneModificationsPR2('r_gripper_r_finger_tip_link', 0.03, -0.015)
+    boneModificationsPR2('r_gripper_l_finger_tip_link', 0.03, 0.015)
+
+    boneModificationsPR2('l_gripper_r_finger_tip_link', 0.03, -0.015) # option: 0.015, - 0.035
+    boneModificationsPR2('l_gripper_l_finger_tip_link', 0.03, 0.015)
+
     visited_meshes = {}
     unvisited_meshes = []
     moveAllMeshes(model, visited_meshes, 'base_footprint', unvisited_meshes)

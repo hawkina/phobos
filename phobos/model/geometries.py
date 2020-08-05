@@ -335,6 +335,8 @@ move_back_meshes = ['r_upper_arm_roll_link', 'r_upper_arm_link', #'r_elbow_flex_
                     'r_gripper_motor_accelerometer_link', 'r_gripper_motor_slider_link',
                     'r_gripper_motor_screw_link', #'r_gripper_r_finger_tip_link',
                     'r_gripper_l_finger_tip_frame',
+                    'r_gripper_r_finger_link',
+                    'r_gripper_l_finger_link',
                     
                     # left arm
                     'l_upper_arm_roll_link', 'l_upper_arm_link', #'l_elbow_flex_link',
@@ -351,7 +353,9 @@ move_back_meshes = ['r_upper_arm_roll_link', 'r_upper_arm_link', #'r_elbow_flex_
                     # specific to the left arm due to the IAI force-torque sensor:
                     'l_force_torque_adapter_link', #'l_force_torque_link', 
                     'l_gripper_palm_link',
-                    'l_gripper_motor_accelerometer_link'
+                    'l_gripper_motor_accelerometer_link',
+                    'l_gripper_l_finger_link',
+                    'l_gripper_r_finger_link'
                     ]
 
 # enforce binding to child bone instead of same name bone
@@ -360,8 +364,15 @@ enforce_parent = ['r_shoulder_pan_link',
                   'r_elbow_flex_link',
                   'l_shoulder_pan_link', 
                   'l_shoulder_lift_link',
-                  'l_elbow_flex_link'
+                  'l_elbow_flex_link',
+                  'r_gripper_r_finger_link',
+                  'r_gripper_l_finger_link',
+                  'l_gripper_r_finger_link',
+                  'l_gripper_l_finger_link'
                   ]
+
+parenting_exceptions = ['r_gripper_r_finger_tip_link', 'r_gripper_l_finger_tip_link',
+                        'l_gripper_r_finger_tip_link', 'l_gripper_l_finger_tip_link']
 
 def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
     log("-----------------------------------------------", 'DEBUG')
@@ -471,6 +482,9 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
                     except KeyError:
                         log("child with name '{}' does not exist. try next.".format(child), 'DEBUG')
                         child = model['links'][child]['children']
+            
+            if name in parenting_exceptions:
+                parent_bone_name = parent_bone_name + '_tip'
 
 
             log("parent_bone name: '{}'".format(parent_bone), 'DEBUG')           
@@ -521,10 +535,6 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
     log("all objects of type mesh: '{}'".format(bpy.data.meshes), 'DEBUG')
     log("all objects in visited meshes: '{}'".format(len(visited_meshes)), 'DEBUG')
 
-    #children = model['links'][name]['children']
-    #for child in children:
-    #    if child != []:
-    #        moveAllMeshes(model, visited_meshes, child, unvisited_meshes)
     
     
 

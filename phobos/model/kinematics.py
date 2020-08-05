@@ -15,6 +15,25 @@ def addInverseKinematics(root, target, chain_length):
     constraint.subtarget = target
     constraint.chain_count = chain_length
 
+def addCopyRotationConstraint(source, target):
+    # adds the copy rotation constraint to a given source bone
+    # source: the bone we want to add the constraint to
+    # target: the bone we want to copy the rotation from
+
+    armature = bpy.data.objects['armature_object']
+    bpy.context.scene.objects.active = armature
+    bone = armature.pose.bones[source]
+
+    constraint = bone.constraints.new('COPY_ROTATION')
+    constraint.target = armature
+    constraint.subtarget = target
+    constraint.owner_space = 'LOCAL_WITH_PARENT' 
+    constraint.target_space = 'LOCAL_WITH_PARENT'
+
+    constraint.use_x = True
+    constraint.use_y = True
+    constraint.use_z = True
+    constraint.invert_z = True
 
 def lockAxisForKinematics(link_name, x, y, z):
     # this refers to the constraints in the IK tab of each object
@@ -49,14 +68,36 @@ def createControlBones(origin, name):
 
     bpy.ops.object.mode_set(mode='OBJECT', toggle=True) 
 
+def boneModificationsPR2(name, offset_x, offset_y):
+    # these are some bone modifications which are specific to the  PR2 and it'S grippers
+    # add additional bone to the gripper fingers
+
+    armature = bpy.data.objects['armature_object']
+    bpy.context.scene.objects.active = armature
+    bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+    bpy.ops.armature.select_all(action='DESELECT')
+    # create new bone by subdividing
+    bone = armature.data.edit_bones[name]
+    armature.data.edit_bones[name].select = True
+    bpy.ops.armature.subdivide()
+
+    bpy.ops.object.mode_set(mode='OBJECT', toggle=True)
+    bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+
+    # rename bones
+    bone = armature.data.edit_bones[name + '.001']
+    bone.name = name + '_tip'
+
+    # set position of bone
+    head = bone.head
+    bone.head = (head[0] + offset_x, head[1] + offset_y, head[2])
 
 def addPR2KinematicsConstraints():
     # create Control Bones
     createControlBones('r_wrist_flex_link', 'r_arm_control')
     createControlBones('l_wrist_flex_link', 'l_arm_control')
 
-    #createControlBones('r_gripper_tool_frame', 'r_gripper_control')
-    #createControlBones('l_gripper_tool_frame', 'l_gripper_control')
+    # everything ARM related
 
     lockAxisForKinematics('r_shoulder_lift_link', 1, 1, 0)
     lockAxisForKinematics('l_shoulder_lift_link', 1, 1, 0)
@@ -70,23 +111,7 @@ def addPR2KinematicsConstraints():
     addInverseKinematics('r_wrist_flex_link', 'r_arm_control', 3)
     addInverseKinematics('l_force_torque_adapter_link', 'l_arm_control', 4) # this is iai pr2 specific
 
-    addInverseKinematics('l_gripper_l_finger_tip_link', 'l_arm_control', 3)
-    addInverseKinematics('l_gripper_r_finger_tip_link', 'l_arm_control', 3)
-    addInverseKinematics('r_gripper_l_finger_tip_link', 'r_arm_control', 3)
-    addInverseKinematics('r_gripper_r_finger_tip_link', 'r_arm_control', 3)
+    # add gripper constraints
+    addCopyRotationConstraint('r_gripper_l_finger_tip_link', 'r_gripper_r_finger_tip_link')
+    addCopyRotationConstraint('l_gripper_l_finger_tip_link', 'l_gripper_r_finger_tip_link')
 
-    # lock axis for left gripper
-    lockAxisForKinematics('l_gripper_r_finger_tip_link', 1, 1, 0)
-    lockAxisForKinematics('l_gripper_l_finger_tip_link', 1, 1, 0)
-
-    lockAxisForKinematics('l_gripper_r_finger_link', 1, 1, 0)
-    lockAxisForKinematics('l_gripper_l_finger_link', 1, 1, 0)
-
-    lockAxisForKinematics('l_force_torque_adapter_link', 1, 1, 1)
-
-    # lock axis for right gripper
-    lockAxisForKinematics('r_gripper_r_finger_tip_link', 1, 1, 0)
-    lockAxisForKinematics('r_gripper_l_finger_tip_link', 1, 1, 0)
-
-    lockAxisForKinematics('r_gripper_l_finger_link', 1, 1, 0)
-    lockAxisForKinematics('r_gripper_r_finger_link', 1, 1, 0)
