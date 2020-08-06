@@ -27,10 +27,12 @@ exceptions = ['l_gripper_l_finger_tip_link', 'l_gripper_r_finger_tip_link',
               'l_gripper_l_finger_link', 'l_gripper_r_finger_link',
               
               'r_gripper_l_finger_tip_link', 'r_gripper_r_finger_tip_link',
-              'r_gripper_l_finger_link', 'r_gripper_r_finger_link'
+              'r_gripper_l_finger_link', 'r_gripper_r_finger_link',
+
+              'r_elbow_flex_link', 'r_wrist_flex_link', 'r_shoulder_lift_link'
               ]
 
-def addJointConstraints(model, link_name):
+def addJointConstraints(model, link_name): # from urdf
     joint = ''
     # find matching joint. meaning: e.g. r_shoulder_pan_link -> r_shoulder_pan_joint
     for joint_name in model['joints']:
