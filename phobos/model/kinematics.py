@@ -5,7 +5,7 @@ def addInverseKinematics(root, target, chain_length):
 # this refers to the IK Constrait added onto bones
 # root = root of the chain. String.
 # target = target of the chain. Which bone should be followed? String of bone name
-    armature = bpy.data.objects['armature_object']
+    armature = bpy.data.objects['armature']
     bpy.context.scene.objects.active = armature
     
     bone = armature.pose.bones[root]
@@ -20,7 +20,7 @@ def addCopyRotationConstraint(source, target):
     # source: the bone we want to add the constraint to
     # target: the bone we want to copy the rotation from
 
-    armature = bpy.data.objects['armature_object']
+    armature = bpy.data.objects['armature']
     bpy.context.scene.objects.active = armature
     bone = armature.pose.bones[source]
 
@@ -36,7 +36,7 @@ def addCopyRotationConstraint(source, target):
     constraint.invert_z = True
 
 def addLockRotationConstraint(name, x, y, z):
-    armature = bpy.data.objects['armature_object']
+    armature = bpy.data.objects['armature']
     bpy.context.scene.objects.active = armature
     bone = armature.pose.bones[name]
 
@@ -54,7 +54,7 @@ def addLockRotationConstraint(name, x, y, z):
 def lockAxisForKinematics(link_name, x, y, z):
     # this refers to the constraints in the IK tab of each object
     # E.g. use for the both shoulders to prevent them from lifting awkwardly
-    armature = bpy.data.objects['armature_object']
+    armature = bpy.data.objects['armature']
     bpy.context.scene.objects.active = armature
     bone = armature.pose.bones[link_name]
 
@@ -68,7 +68,7 @@ def lockAxisForKinematics(link_name, x, y, z):
 def createControlBones(origin, name):
     # origin refers to the origin bone we use to create an offset
     # name is the name of the control bone
-    armature = bpy.data.objects['armature_object']
+    armature = bpy.data.objects['armature']
     bpy.context.scene.objects.active = armature
 
     origin_tail = armature.data.bones[origin].tail_local
@@ -90,7 +90,7 @@ def subdivideBone(name, h_offset_x, h_offset_y, new_name = '', tiny_bone = False
     # these are some bone modifications which are specific to the  PR2 and it'S grippers
     # add additional bone to the gripper fingers
 
-    armature = bpy.data.objects['armature_object']
+    armature = bpy.data.objects['armature']
     bpy.context.scene.objects.active = armature
     bpy.ops.object.mode_set(mode='EDIT', toggle=False)
     bpy.ops.armature.select_all(action='DESELECT')
@@ -131,7 +131,7 @@ def subdivideBone(name, h_offset_x, h_offset_y, new_name = '', tiny_bone = False
 def reParentBone(source, target):
     # used to prettify the gripper
     # reparent bones to have one parent instead of two
-    armature = bpy.data.objects['armature_object']
+    armature = bpy.data.objects['armature']
     bpy.context.scene.objects.active = armature
     bpy.ops.object.mode_set(mode='EDIT', toggle=False)
     bpy.ops.armature.select_all(action='DESELECT')
@@ -147,7 +147,7 @@ def reParentBone(source, target):
 
 def deleteBone(name):
     # delete the selected bone
-    armature = bpy.data.objects['armature_object']
+    armature = bpy.data.objects['armature']
     bpy.context.scene.objects.active = armature
     bpy.ops.object.mode_set(mode='EDIT', toggle=False)
     bpy.ops.armature.select_all(action='DESELECT')

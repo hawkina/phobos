@@ -1223,12 +1223,18 @@ def buildModelFromDictionary(model):
     moveAllMeshes(model, visited_meshes, 'base_footprint', unvisited_meshes)
     addJointConstraints(model, 'base_footprint')
     for mesh in bpy.data.objects:
-        if mesh != bpy.data.objects['pr2_empty'] and mesh != bpy.data.objects['armature_object']:
+        if mesh != bpy.data.objects['pr2_empty'] and mesh != bpy.data.objects['armature']:
             moveAllMeshes(model, visited_meshes, mesh.name, unvisited_meshes)
             addJointConstraints(model, mesh.name)
+
     log("All unvisited meshes are: '{}'".format(unvisited_meshes), 'INFO')
     # add IK and constraints to our build
     addPR2KinematicsConstraints()
+
+    for mesh in bpy.data.objects:
+        if mesh.type == 'MESH' and 'mesh' not in mesh.name:
+            # make sure meshes have different names then bones becasue unreal <.<'
+            mesh.name = "mesh_" + mesh.name
 
     
     # end new

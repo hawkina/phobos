@@ -46,7 +46,7 @@ def addJointConstraints(model, link_name): # from urdf
         log("no matching joint found. Exit.", 'ERROR')
         return
 
-    armature = bpy.data.objects['armature_object']
+    armature = bpy.data.objects['armature']
     bpy.context.scene.objects.active = armature
     
     #find which bone the mesh is parented to

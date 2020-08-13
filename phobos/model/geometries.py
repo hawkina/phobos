@@ -150,7 +150,7 @@ def createGeometry(viscol, geomsrc, linkobj):
 
     # create the Blender object
     if geom['type'] == 'mesh':
-        bpy.context.scene.layers = bUtils.defLayers(defs.layerTypes[geomsrc])
+        #bpy.context.scene.layers = bUtils.defLayers(defs.layerTypes[geomsrc])
         meshname = "".join(os.path.basename(geom["filename"]).split(".")[:-1])
         if not os.path.isfile(geom['filename']):
             log(
@@ -275,7 +275,7 @@ def createGeometry(viscol, geomsrc, linkobj):
         #bpy.data.objects[name].location = viscol['pose']['translation']
         #bpy.data.objects[name].rotation_euler = viscol['pose']['rotation_euler']
         #! This works!!!
-        #armature = bpy.data.objects['armature_object']
+        #armature = bpy.data.objects['armature']
         #newgeom.parent = armature
         #newgeom.parent_type = 'OBJECT'
         #newgeom.parent_bone = bone_name #TODO this needs fixing
@@ -294,9 +294,9 @@ def createGeometry(viscol, geomsrc, linkobj):
         #    vertices.append(vertex.index)
         #vertex_group.add(vertices, 1.0, 'ADD')
 
-        # Add armature modifiert
+        # Add armature modifier
        # bpy.ops.object.modifier_add(type='ARMATURE')
-       # bpy.context.object.modifiers["Armature"].object = bpy.data.objects["armature_object"]
+       # bpy.context.object.modifiers["Armature"].object = bpy.data.objects["armature"]
        # bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Armature")
         
         
@@ -395,7 +395,7 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
             log("accessing mesh was succesfull.", 'DEBUG')
             # find the bone to parent the mesh to
             # access armature and switch into EDIT mode
-            armature = bpy.data.objects['armature_object']
+            armature = bpy.data.objects['armature']
             bpy.ops.object.select_all(action='DESELECT')
             armature.select = True
             bpy.context.scene.objects.active = armature
@@ -523,6 +523,31 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
                 log("location of parent's bone tail: '{}'".format(loc_parent_bone_tail), 'DEBUG')
                 mat_loc = mathutils.Matrix.Translation((loc_parent_bone_tail[0], loc_parent_bone_tail[1], loc_parent_bone_tail[2])).to_4x4()
                 mesh.matrix_world = mat_loc
+
+            # add armature modifier to mesh (important for export later)
+            log("adding armature modifier to: '{}'".format(mesh), 'INFO')
+            bpy.context.scene.objects.active = mesh
+            # make sure it is only applied to a mesh object
+            # This is very important for the unreal import!!!
+            if mesh.type == 'MESH':  
+                # add vertex groups
+                vertex_group = mesh.vertex_groups.new(name)
+                vertices = []
+                for vertex in mesh.data.vertices:
+                    vertices.append(vertex.index)
+                vertex_group.add(vertices, 1.0, 'ADD')
+
+                # add armature modifier
+                bpy.ops.object.modifier_add(type='ARMATURE')
+                bpy.context.object.modifiers["Armature"].object = bpy.data.objects["armature"]              
+                bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Armature")
+         
+                #index_list = [0]*len(mesh.data.vertices)
+                #mesh.data.vertices.foreach_get('index', index_list)
+                #mesh.vertex_groups[parent_bone_name].add(index_list, 1, 'REPLACE')  
+
+                
+                        
 
         except:
             log("In moveAllMeshes: No mesh for '{}' exists. Maybe it was already processed?.".format(name), 'WARNING')

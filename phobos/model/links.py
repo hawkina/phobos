@@ -125,14 +125,14 @@ def createLink(link, model, visited_links, counter):
 
         #Create a new armature and the coresponding Armature Object: 
         armature = bpy.data.armatures.new('robot_armature')
-        armature_object = bpy.data.objects.new('armature_object', armature)
-        bpy.context.scene.objects.link(armature_object)
+        armature = bpy.data.objects.new('armature', armature)
+        bpy.context.scene.objects.link(armature)
 
         #parent armature to empty
-        armature_object.parent = empty
+        armature.parent = empty
 
         # create root bone
-        armature = bpy.data.objects['armature_object']
+        armature = bpy.data.objects['armature']
         bpy.context.scene.objects.active = armature
         bpy.ops.object.mode_set(mode='EDIT', toggle=False) # enable edit mode   
 
@@ -162,7 +162,7 @@ def createLink(link, model, visited_links, counter):
     else:
         # case: armature and initial bone exists. Create next bone.
         bpy.ops.object.select_all(action='DESELECT')
-        armature = bpy.data.objects['armature_object']
+        armature = bpy.data.objects['armature']
         bpy.context.scene.objects.active = armature
         bpy.ops.object.mode_set(mode='EDIT', toggle=False)
 
@@ -212,7 +212,7 @@ def createLink(link, model, visited_links, counter):
             
             #This needs to happen no matter if the previous try-catch was succesfull or not
             bUtils.toggleLayer(defs.layerTypes['link'], True)
-            armature = bpy.data.objects['armature_object']
+            armature = bpy.data.objects['armature']
             bpy.context.scene.objects.active = armature
             bpy.ops.object.mode_set(mode='EDIT')
 
@@ -330,7 +330,7 @@ def setLinkTransformations(model, parent):
     Returns:
 
     """
-    bpy.context.scene.layers = bUtils.defLayers(defs.layerTypes['link'])
+    #bpy.context.scene.layers = bUtils.defLayers(defs.layerTypes['link'])
     for chi in parent['children']:
         child = model['links'][chi]
 
