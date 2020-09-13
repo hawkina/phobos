@@ -48,11 +48,11 @@ def getGeometricElements(link):
 
 def generateMatrix(model, link, pose, armature):
     "Gets the model object and a link, calculates the matrix and returns it"
-    log("generate matrix called with '{}' ".format(link['name']), 'INFO')
+    #log("generate matrix called with '{}' ".format(link['name']), 'INFO')
     if pose == 0.0:
         pose = armature.data.edit_bones[link['name']].parent.tail
 
-    log("pose of parent '{}' ".format(pose), 'INFO')
+    #log("pose of parent '{}' ".format(pose), 'INFO')
     euler_rotation = model['links'][link['name']]['pose']['rotation_euler']
 
     mat_location = mathutils.Matrix.Translation((pose[0], pose[1], pose[2]))
@@ -62,7 +62,7 @@ def generateMatrix(model, link, pose, armature):
     return mat_final
 
 def collectParentMatrixes(model, link, pose, mat, armature):
-    log("collect parent matrix called with '{}' ".format(link['name']), 'INFO')
+    #log("collect parent matrix called with '{}' ".format(link['name']), 'INFO')
     new_mat = generateMatrix(model, link, pose, armature)
     mat = new_mat *  mat
 
@@ -102,7 +102,9 @@ def createLink(link, model, visited_links, counter):
       : bpy_types.Object -- the newly created blender link object.
 
     """
-    log("Creating link object '{}'...".format(link['name']), 'DEBUG', prefix='\n')
+    log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    log("Creating link object '{}'...".format(link['name']), 'INFO')
+    tiny_bone_length = 0.001
     # create armature/bone
     # ---NEW ---
     # check if link name is base_link
@@ -170,15 +172,10 @@ def createLink(link, model, visited_links, counter):
         parent_name = model['links'][model['links'][link['name']]['parent']]['name']
         parent = model['links'][parent_name]
      
-        #parent_pose = armature.data.edit_bones[parent_name].tail
-        #THIS MIGHT NEED TO BE REMOVED
-        parent_pose = model['links'][parent_name]['pose']['translation']
+        parent_pose = armature.data.edit_bones[parent_name].tail
+        #parent_pose = model['links'][parent_name]['pose']['translation']
 
-        # armature.data.edit_bones[parent_name].select_tail=True # select the tail to extrude from
         # make sure bone length can't be 0
-        #log("Parent_Pose: '{}'".format(parent_pose), 'WARNING')
-        #log("Child_pose: '{}'".format(pose), 'WARNING')
-
         if not ((pose[0] == 0.0 and pose[1] == 0.0 and pose[2] == 0.0) or parent_pose == pose):
             # case: child_pose is not 0, therefore bone should be created.
             # Generate matrix for Bone: 
@@ -195,23 +192,25 @@ def createLink(link, model, visited_links, counter):
             #log("pre-while parent pose'{}'".format(parent_pose), 'INFO')
             while parent_pose[0] == 0.0 and parent_pose[1] == 0.0 and parent_pose[2] == 0.0 and parent_name != 'base_footprint':
                 parent = model['links'][parent_name]['parent']
-                log("in-while parent'{}'".format(parent), 'INFO') 
+                #log("in-while parent'{}'".format(parent), 'INFO') 
                 parent_name = model['links'][parent]['name']
                 parent_pose = model['links'][parent_name]['pose']['translation'] 
-                log("in-while parent name'{}'".format(parent_name), 'INFO')   
-                log("in-while parent pose'{}'".format(parent_pose), 'INFO')
+
 
             parent_pose = armature.data.edit_bones[parent_name].tail
+            parent_bone = armature.data.edit_bones[parent_name]
 
-            #log("parent pose in armature: '{}'".format(parent_pose), 'INFO')
-            #replace this
-            #armature.data.edit_bones[parent_name].select_tail=True 
+            #make sure that if previous bone is one of the tiny artificial ones, to subtract that from the tail of new bone
+            if parent_bone.length <= tiny_bone_length:
+                #translation
+                mat_parent = mathutils.Matrix.Translation((parent_pose[0] - tiny_bone_length, parent_pose[1], parent_pose[2])).to_4x4() 
+            else:
+                mat_parent = mathutils.Matrix.Translation((parent_pose[0], parent_pose[1], parent_pose[2])).to_4x4() 
 
-            mat_parent = mathutils.Matrix.Translation((parent_pose[0], parent_pose[1], parent_pose[2])).to_4x4() #translation
             mat_final = mat_parent * mat_current * mat_rotation.to_4x4()
             
             #This needs to happen no matter if the previous try-catch was succesfull or not
-            bUtils.toggleLayer(defs.layerTypes['link'], True)
+            #bUtils.toggleLayer(defs.layerTypes['link'], True)
             armature = bpy.data.objects['armature']
             bpy.context.scene.objects.active = armature
             bpy.ops.object.mode_set(mode='EDIT')
@@ -222,26 +221,24 @@ def createLink(link, model, visited_links, counter):
             #log("Resulting pose: '{}'".format(armature.data.edit_bones[link['name']].tail), 'WARNING')
 
              # parent bone
-            bone.use_connect = True # TODO only connect in some cases
-            #bone.use_relative_parent = True
-
-
-            #log("Current Bone: '{}'".format(link['name']), 'INFO')
-            #log("Parent Bone: '{}'".format(parent_name), 'INFO')
+            bone.use_connect = True 
         
             # general properties of bones: 
             bone.use_deform = False
     
             bpy.ops.object.mode_set(mode='OBJECT', toggle=True) # exit edit mode
             newlink = bone
-            log("Bone name: '{}'".format(bone.name), 'INFO')
-            log("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 'INFO')
+            #log("Bone name: '{}'".format(bone.name), 'INFO')
+            #log("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 'INFO')
             # spawn meshes of bones in Armature
             bone_name = bone.name
         else: 
             # if child pose is 0
-            # if bone is of size 0, return the matrix of parent bone as location
-            #log("got into else with child_pose: '{}'".format(pose))
+            # if bone is of size 0, force creation by giving it a minimal lengh
+
+
+            ## if bone is of size 0, return the matrix of parent bone as location
+            ##log("got into else with child_pose: '{}'".format(pose))
             parent_name = model['links'][model['links'][link['name']]['parent']]['name']
             parent_pose = model['links'][parent_name]['pose']['translation']
             
@@ -250,35 +247,57 @@ def createLink(link, model, visited_links, counter):
             # check if parent_pose was also 0.0
             while parent_pose[0] == 0.0 and parent_pose[1] == 0.0 and parent_pose[2] == 0.0:
                 parent = model['links'][parent_name]['parent']
-                #log("in-while parent'{}'".format(parent), 'INFO') 
+            #    #log("in-while parent'{}'".format(parent), 'INFO') 
                 parent_name = model['links'][parent]['name']
                 parent_pose = model['links'][parent_name]['pose']['translation']    
 
             parent_pose = armature.data.edit_bones[parent_name].tail
-            mat_final = mathutils.Matrix.Translation((parent_pose[0], parent_pose[1], parent_pose[2])).to_4x4()
-            bone_name = parent_name
+            mat_final = mathutils.Matrix.Translation((parent_pose[0] + tiny_bone_length, parent_pose[1], parent_pose[2])).to_4x4()
+            
 
-            newlink = model['links'][link['name']]
+            #create new bone 
+            bone = armature.data.edit_bones.new(link['name'])
+            bone.parent = armature.data.edit_bones[parent_name]
+            bone.matrix = mat_final
+
+            # parent bone
+            bone.use_connect = True 
+        
+            # general properties of bones: 
+            bone.use_deform = False
+
+            #print bone length for debugging
+            #log('bone name: {}'.format(bone.name), 'INFO')
+            #log('bone lenght:{} '.format(bone.length), 'INFO')
+
+            #newlink = model['links'][link['name']]
+            newlink = bone
             bpy.ops.object.mode_set(mode='OBJECT', toggle=True) 
+            #debugging
+            bone_name = bone.name
+            
        
     bpy.ops.object.transform_apply(location = True, scale = False, rotation = True)         
-    bUtils.update()
+    
 
     #TODO Hasu: Comment these back in
     #create geometric elements
-    log(
-        "Creating visual and collision objects for link '{0}':\n{1}".format(
-            link['name'], '    \n'.join([elem['name'] for elem in visuals + collisions])
-        ),
-        'DEBUG',
-    )
+    #log(
+    #    "Creating visual and collision objects for link '{0}':\n{1}".format(
+    #        link['name'], '    \n'.join([elem['name'] for elem in visuals + collisions])
+    #    ),
+    #    'DEBUG',
+    #)
 
     #for vis in visuals:
     try: 
         mesh = geometrymodel.createGeometry(visuals[0], 'visual', newlink) #TODO this is currently buggy
     except IndexError:
-        log("Index out of Bounds. No Visual.", 'WARNING')
+        log("Index out of Bounds. No Visual for {}".format(newlink), 'WARNING')
 
+    log("newly created bone: '{}'".format(bone_name), 'INFO')
+    log("newly created bone's parent: '{}'".format(parent_name), 'INFO')
+    bUtils.update()
     return newlink
 
 

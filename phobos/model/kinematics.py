@@ -72,7 +72,7 @@ def createControlBones(origin, name):
     bpy.context.scene.objects.active = armature
 
     origin_tail = armature.data.bones[origin].tail_local
-    log("tail: '{}'".format(origin_tail), 'ERROR')
+    #log("tail: '{}'".format(origin_tail), 'ERROR')
     offset = 0.5
     length = 0.3
     bpy.ops.object.mode_set(mode='EDIT', toggle=False)
@@ -183,13 +183,17 @@ def boneModificationsPR2():
     #deleteBone('r_gripper_l_finger_link')
 
     #delete unecessary bones
-    deleteBone('r_gripper_led_frame')
-    deleteBone('l_gripper_led_frame')
+    #deleteBone('r_gripper_led_frame')
+    #deleteBone('l_gripper_led_frame')
+
+    # more reparenting after every bone creation
+    reParentBone('r_gripper_l_finger_tip_frame', 'r_gripper_r_finger_tip_link')
+    reParentBone('r_gripper_motor_screw_link', 'r_gripper_motor_slider_link')
 
 def addPR2KinematicsConstraints():
     # create Control Bones
-    createControlBones('r_wrist_flex_link', 'r_arm_control')
-    createControlBones('l_wrist_flex_link', 'l_arm_control')
+    #createControlBones('r_wrist_flex_link', 'r_arm_control')
+    #createControlBones('l_wrist_flex_link', 'l_arm_control')
 
     # everything ARM related
 

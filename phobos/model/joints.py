@@ -38,8 +38,8 @@ def addJointConstraints(model, link_name): # from urdf
     for joint_name in model['joints']:
         if model['joints'][joint_name]['child'] == link_name:
             joint = joint_name
-            log("found matching joint name '{}'".format(joint), 'INFO')
-            log("for the link '{}'".format(link_name), 'INFO')
+            #log("found matching joint name '{}'".format(joint), 'INFO')
+            #log("for the link '{}'".format(link_name), 'INFO')
             break
 
     if joint == '':
@@ -58,7 +58,7 @@ def addJointConstraints(model, link_name): # from urdf
         mesh = bpy.data.objects[link_name]
         bpy.context.scene.objects.active = armature
         bone_parent = mesh.parent_bone
-        log("No mesh with that name exists. skipping. parent_bone : '{}'".format(bone_parent), 'ERROR')
+        #log("No mesh with that name exists. skipping. parent_bone : '{}'".format(bone_parent), 'WARNING')
 
         # select current bone if it exists. if not, skip
         try: 
@@ -82,9 +82,9 @@ def addJointConstraints(model, link_name): # from urdf
             limits = model['joints'][joint]['limits']
             upper = limits['upper']
             lower = limits['lower']
-            log("axis: '{}'".format(axis), 'ERROR')
-            log("upper: '{}'".format(upper), 'ERROR')
-            log("lower: '{}'".format(lower), 'ERROR')
+            #log("axis: '{}'".format(axis), 'ERROR')
+            #log("upper: '{}'".format(upper), 'ERROR')
+            #log("lower: '{}'".format(lower), 'ERROR')
             # create Limit Rotation constraint
             # This might not be the cleanes solution but atm we can be sure that only one constraint
             if  len(bone.constraints) < 1:

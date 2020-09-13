@@ -86,11 +86,11 @@ def importMesh(filepath, meshtype):
     except KeyError:
         log('Unknown mesh type: ' + meshtype, 'ERROR')
 
-    bl = None
+    #bl = None
     if 'base_link' in bpy.data.objects:
             bl = bpy.data.objects['base_link']
-    if bl:
-        log("in importMesh after import base link scale: '{}'".format(bl.scale), 'ERROR')
+    #if bl:
+    #    log("in importMesh after import base link scale: '{}'".format(bl.scale), 'ERROR')
 
     # find the newly imported obj
     newgeom = None
@@ -123,7 +123,7 @@ def importObj(filepath):
 
     """
     # DOCU add some docstring
-    log("Importing OBJ", 'ERROR')
+    #log("Importing OBJ", 'ERROR')
     bpy.ops.import_scene.obj(filepath=filepath)
 
 
@@ -156,7 +156,7 @@ def importDae(filepath):
     bpy.ops.wm.collada_import(filepath=filepath, import_units=True)
     mesh = bpy.context.active_object
     #mesh.scale = (0.001, 0.001, 0.001)
-    log("Scale after import: '{}'".format(mesh.scale), 'ERROR')
+    #log("Scale after import: '{}'".format(mesh.scale), 'ERROR')
 
 
 def exportObj(obj, path):

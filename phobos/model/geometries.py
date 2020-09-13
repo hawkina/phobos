@@ -142,7 +142,7 @@ def createGeometry(viscol, geomsrc, linkobj):
 
     """
     if 'geometry' not in viscol or viscol['geometry'] is {}:
-        log("Could not create {}. Geometry information not defined!".format(geomsrc), 'ERROR')
+        log("Could not create '{}'. Geometry information not defined!".format(geomsrc), 'ERROR')
         return None
 
     bpy.ops.object.select_all(action='DESELECT')
@@ -171,7 +171,7 @@ def createGeometry(viscol, geomsrc, linkobj):
                 newgeom = bpy.context.object
                 newgeom.data = bpy.data.meshes[meshname]
             else:
-                log("Importing mesh for {0} element: '{1}".format(geomsrc, viscol['name']), 'INFO')
+                #log("Importing mesh for {0} element: '{1}".format(geomsrc, viscol['name']), 'INFO')
                 filetype = geom['filename'].split('.')[-1].lower()
                 newgeom = meshes.importMesh(geom['filename'], filetype)
                 # bpy.data.meshes[newgeom].name = meshname
@@ -324,66 +324,66 @@ def createGeometry(viscol, geomsrc, linkobj):
 # TODO make these optional depending on robot model?
 # these mostly concern the arms
 # "move back" means moving the meshes to the position of the parents bone's head
-move_back_meshes = ['r_upper_arm_roll_link', 'r_upper_arm_link', #'r_elbow_flex_link',
-                    'r_forearm_roll_link', 'r_forearm_cam_frame', 'r_forearm_cam_optical_frame',
-                    'r_forearm_link', #'r_wrist_flex_link', 'r_wrist_roll_link', 
-                    'r_gripper_palm_link',
-                    'r_shoulder_pan_link', 
-                    'r_shoulder_lift_link',
-                    'r_elbow_flex_link',
+move_back_meshes = [#'r_upper_arm_roll_link', 'r_upper_arm_link', #'r_elbow_flex_link',
+                    #'r_forearm_roll_link', 'r_forearm_cam_frame', 'r_forearm_cam_optical_frame',
+                    #'r_forearm_link', #'r_wrist_flex_link', 'r_wrist_roll_link', 
+                    #'r_gripper_palm_link',
+                    #'r_shoulder_pan_link', 
+                    #'r_shoulder_lift_link',
+                    #'r_elbow_flex_link',
                     # newly added:
-                    'r_gripper_motor_accelerometer_link', 'r_gripper_motor_slider_link',
-                    'r_gripper_motor_screw_link', #'r_gripper_r_finger_tip_link',
-                    'r_gripper_l_finger_tip_frame',
-                    'r_gripper_r_finger_link',
-                    'r_gripper_l_finger_link',
+                    #'r_gripper_motor_accelerometer_link', 'r_gripper_motor_slider_link',
+                    #'r_gripper_motor_screw_link', #'r_gripper_r_finger_tip_link',
+                    #'r_gripper_l_finger_tip_frame',
+                    #'r_gripper_r_finger_link',
+                    #'r_gripper_l_finger_link',
                     
                     # left arm
-                    'l_upper_arm_roll_link', 'l_upper_arm_link', #'l_elbow_flex_link',
-                    'l_forearm_roll_link', 'l_forearm_cam_frame', 'l_forearm_cam_optical_frame',
-                    'l_forearm_link', #'l_wrist_flex_link', 'l_wrist_roll_link', 
-                    'l_gripper_palm_link',
-                    'l_shoulder_pan_link', 
-                    'l_shoulder_lift_link',
-                    'l_elbow_flex_link',
+                    #'l_upper_arm_roll_link', 'l_upper_arm_link', #'l_elbow_flex_link',
+                    #'l_forearm_roll_link', 'l_forearm_cam_frame', 'l_forearm_cam_optical_frame',
+                    #'l_forearm_link', #'l_wrist_flex_link', 'l_wrist_roll_link', 
+                    #'l_gripper_palm_link',
+                    #'l_shoulder_pan_link', 
+                    #'l_shoulder_lift_link',
+                    #'l_elbow_flex_link',
                     # newly added for left arm: 
-                    'l_gripper_motor_accelerometer_link', 'l_gripper_motor_slider_link',
-                    'l_gripper_motor_screw_link', #'l_gripper_r_finger_tip_link',
-                    'l_gripper_l_finger_tip_frame',
+                    #'l_gripper_motor_accelerometer_link', 'l_gripper_motor_slider_link',
+                    #'l_gripper_motor_screw_link', #'l_gripper_r_finger_tip_link',
+                    #'l_gripper_l_finger_tip_frame',
                     # specific to the left arm due to the IAI force-torque sensor:
-                    'l_force_torque_adapter_link', #'l_force_torque_link', 
-                    'l_gripper_palm_link',
-                    'l_gripper_motor_accelerometer_link',
-                    'l_gripper_l_finger_link',
-                    'l_gripper_r_finger_link'
+                    #'l_force_torque_adapter_link', #'l_force_torque_link', 
+                    #'l_gripper_palm_link',
+                    #'l_gripper_motor_accelerometer_link',
+                    #'l_gripper_l_finger_link',
+                    #'l_gripper_r_finger_link'
                     ]
 
 # enforce binding to child bone instead of same name bone
-enforce_parent = ['r_shoulder_pan_link', 
-                  'r_shoulder_lift_link',
-                  'r_elbow_flex_link',
-                  'l_shoulder_pan_link', 
-                  'l_shoulder_lift_link',
-                  'l_elbow_flex_link',
-                  'r_gripper_r_finger_link',
-                  'r_gripper_l_finger_link',
-                  'l_gripper_r_finger_link',
-                  'l_gripper_l_finger_link'
+enforce_parent = [#'r_shoulder_pan_link', 
+                  #'r_shoulder_lift_link',
+                  #'r_elbow_flex_link',
+                  #'l_shoulder_pan_link', 
+                  #'l_shoulder_lift_link',
+                  #'l_elbow_flex_link',
+                  #'r_gripper_r_finger_link',
+                  #'r_gripper_l_finger_link',
+                  #'l_gripper_r_finger_link',
+                  #'l_gripper_l_finger_link'
                   ]
 
 parenting_exceptions = ['r_gripper_r_finger_tip_link', 'r_gripper_l_finger_tip_link',
                         'l_gripper_r_finger_tip_link', 'l_gripper_l_finger_tip_link']
 
 def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
-    log("-----------------------------------------------", 'DEBUG')
-    log("current: '{}'".format(current), 'DEBUG')
+    #log("-----------------------------------------------", 'DEBUG')
+    #log("current in move meshes: '{}'".format(current), 'DEBUG')
     bpy.ops.object.mode_set(mode='OBJECT') # go back into object mode
     bpy.ops.object.select_all(action='DESELECT')
 
     # Start with base_footprint
     #new_link = model['links'][current] # initial mesh should be bf
     name = current
-    log("Mesh to move: '{}’".format(name), 'DEBUG')
+    #log("Mesh to move: '{}’".format(name), 'DEBUG')
 
     empty = bpy.data.objects['pr2_empty'] 
     bpy.context.scene.objects.active = empty
@@ -392,7 +392,7 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
         # access mesh
         try:
             mesh = bpy.data.objects[name] #the actuall mesh     
-            log("accessing mesh was succesfull.", 'DEBUG')
+            #log("accessing mesh was succesfull.", 'DEBUG')
             # find the bone to parent the mesh to
             # access armature and switch into EDIT mode
             armature = bpy.data.objects['armature']
@@ -404,7 +404,7 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
             # find the bone to parent the object to.
             parent_bone = ''
             try:
-                log("Try to find bone with same name...", 'DEBUG')
+                #log("Try to find bone with same name...", 'DEBUG')
                 # check if a bone with the same name as the mesh exists
                 parent_bone = armature.data.edit_bones[name]
                 parent_bone_name = name
@@ -418,7 +418,7 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
                 q.put(name)
                 
                 while not q.empty:
-                    log("in while... queue: '{}'".format(queue), 'DEBUG')
+                    #log("in while... queue: '{}'".format(queue), 'DEBUG')
                     children = model['links'][q.get()]['children']
                     # add children to temp list
                     for child in children:
@@ -426,21 +426,21 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
                         if depth > 0:
                             q.put(child)
                     depth = depth - 1
-                    log("depth level: '{}', current list: '{}'".format(depth, queue), 'ERROR')
+                    # log("depth level: '{}', current list: '{}'".format(depth, queue), 'ERROR')
 
-                log("into for loop we go!", 'INFO')
+                #log("into for loop we go!", 'INFO')
                 for child in children_of_children: # make sure nill entries are removed from the list
                     if child != []:
                         children.append(child)
 
-                log("list of children to go though: '{}'".format(children), 'DEBUG')
+                #log("list of children to go though: '{}'".format(children), 'DEBUG')
 
                 if children != []:
                     for child in children:
                         try:
-                            log("try to set the child '{}' as bone-parent".format(child), 'DEBUG')
+                            #log("try to set the child '{}' as bone-parent".format(child), 'DEBUG')
                             parent_bone_name = child
-                            log("Select a new child bone: '{}’".format(parent_bone_name), 'DEBUG')
+                            #log("Select a new child bone: '{}’".format(parent_bone_name), 'DEBUG')
                             parent_bone = armature.data.edit_bones[parent_bone_name]
                             break
                         except:
@@ -452,19 +452,19 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
                 potential_parent = name
                 while counter <= 2 and parent_bone == '':
                     # try to bind to parent instead.
-                    log("parenting to child failed. try to parent to parent", 'DEBUG')
+                    #log("parenting to child failed. try to parent to parent", 'DEBUG')
                     try:
                         parent_bone_name = model['links'][potential_parent]['parent']
                         parent_bone = armature.data.edit_bones[parent_bone_name]
-                        log("found parent bone with name: '{}'".format(parent_bone_name), 'DEBUG')
+                        #log("found parent bone with name: '{}'".format(parent_bone_name), 'DEBUG')
                         break
                     except KeyError:
-                        log("parenting to parent '{}' failed.".format(parent_bone_name), 'WARNING')
+                        #log("parenting to parent '{}' failed.".format(parent_bone_name), 'WARNING')
                         counter = counter -1
                         #potential_parent = model['links'][potential_parent]['parent']
                         potential_parent = model['links'][model['links'][potential_parent]['parent']]['name']
-                        log("counter: '{}'".format(counter), 'DEBUG')
-                        log("new potential parent: '{}'".format(potential_parent), 'DEBUG')
+                        #log("counter: '{}'".format(counter), 'DEBUG')
+                        #log("new potential parent: '{}'".format(potential_parent), 'DEBUG')
                         #raise
                     log("try again with parent of parent", 'DEBUG')
 
@@ -480,14 +480,14 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
                         child_search = False
                         parent_bone_name = child
                     except KeyError:
-                        log("child with name '{}' does not exist. try next.".format(child), 'DEBUG')
+                        log("child with name '{}' does not exist. try next.".format(child), 'INFO')
                         child = model['links'][child]['children']
             
             if name in parenting_exceptions:
                 parent_bone_name = parent_bone_name + '_tip'
 
 
-            log("parent_bone name: '{}'".format(parent_bone), 'DEBUG')           
+            #log("parent_bone name: '{}'".format(parent_bone), 'DEBUG')           
             # assume the above worked, and we now have a parent bone
             armature.data.edit_bones.active = parent_bone
 
@@ -505,7 +505,7 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
             mesh.parent = armature
             mesh.parent_type = 'BONE'
             mesh.parent_bone = parent_bone_name
-            log("Parent is set to '{}'".format(parent_bone_name), 'DEBUG')
+            #log("Parent is set to '{}'".format(parent_bone_name), 'DEBUG')
             # parenting was successfull, so put the mesh into the list of visited meshes
             visited_meshes[name] = mesh
 
@@ -515,17 +515,17 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
             # take the position of the bone's head instead of tail
             if name in move_back_meshes:
                 loc_parent_bone_head = armature.data.bones[parent_bone_name].head_local
-                log("location of parent's bone head: '{}'".format(loc_parent_bone_head), 'DEBUG')
+                #log("location of parent's bone head: '{}'".format(loc_parent_bone_head), 'DEBUG')
                 mat_loc = mathutils.Matrix.Translation((loc_parent_bone_head[0], loc_parent_bone_head[1], loc_parent_bone_head[2])).to_4x4()
                 mesh.matrix_world = mat_loc
             else:
                 loc_parent_bone_tail = armature.data.bones[parent_bone_name].tail_local
-                log("location of parent's bone tail: '{}'".format(loc_parent_bone_tail), 'DEBUG')
+                #log("location of parent's bone tail: '{}'".format(loc_parent_bone_tail), 'DEBUG')
                 mat_loc = mathutils.Matrix.Translation((loc_parent_bone_tail[0], loc_parent_bone_tail[1], loc_parent_bone_tail[2])).to_4x4()
                 mesh.matrix_world = mat_loc
 
             # add armature modifier to mesh (important for export later)
-            log("adding armature modifier to: '{}'".format(mesh), 'INFO')
+            #log("adding armature modifier to: '{}'".format(mesh), 'INFO')
             bpy.context.scene.objects.active = mesh
             # make sure it is only applied to a mesh object
             # This is very important for the unreal import!!!
@@ -553,12 +553,17 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
             log("In moveAllMeshes: No mesh for '{}' exists. Maybe it was already processed?.".format(name), 'WARNING')
             unvisited_meshes.append(name)
             raise
+
+        # fix rotation of left hand cylinder of l_force_torque_link
+        if mesh.name == 'l_force_torque_link':
+            mesh.rotation_euler[1] = math.radians(-90)
+            bpy.ops.object.transform_apply(rotation = True)
     else:
         log("Mesh is already in visited_meshes list with the name '{}'".format(name), 'ERROR')
 
     # after everything is done, add this link to visited links
-    log("all objects of type mesh: '{}'".format(bpy.data.meshes), 'DEBUG')
-    log("all objects in visited meshes: '{}'".format(len(visited_meshes)), 'DEBUG')
+    #log("all objects of type mesh: '{}'".format(bpy.data.meshes), 'DEBUG')
+    #log("all objects in visited meshes: '{}'".format(len(visited_meshes)), 'DEBUG')
 
     
     
