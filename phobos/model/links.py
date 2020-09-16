@@ -104,7 +104,7 @@ def createLink(link, model, visited_links, counter):
     """
     log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     log("Creating link object '{}'...".format(link['name']), 'INFO')
-    tiny_bone_length = 0.001
+    tiny_bone_length = 0.01
     # create armature/bone
     # ---NEW ---
     # check if link name is base_link
@@ -277,7 +277,7 @@ def createLink(link, model, visited_links, counter):
             bone_name = bone.name
             
        
-    bpy.ops.object.transform_apply(location = True, scale = False, rotation = True)         
+    bpy.ops.object.transform_apply(scale = False, rotation = True)         
     
 
     #TODO Hasu: Comment these back in

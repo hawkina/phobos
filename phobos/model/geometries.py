@@ -283,7 +283,7 @@ def createGeometry(viscol, geomsrc, linkobj):
 
         newgeom.matrix_world =  final_matrix
         # HaSu: Scale=true set to false for testing
-        bpy.ops.object.transform_apply(location = True, rotation = True)
+        bpy.ops.object.transform_apply(rotation = True)
         #log("matrix used for visual object used: '{}'".format(matrix), 'INFO')
         #log("parent_bone for visual is: '{}'".format(bone_name), 'INFO')
         # # go the vertex route: aka. create a vertex group with the same name as the bone name
