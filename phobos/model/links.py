@@ -300,6 +300,43 @@ def createLink(link, model, visited_links, counter):
     bUtils.update()
     return newlink
 
+# since unreal engine regards the "head" position of a bone as the total bone, we need to shift every bone
+# so where the tail is, the head should be. For this to work, we will also add a root bone and maybe
+# even some leaf bones. 
+def moveUpEachBone(model):
+    offset = 0.01
+    # go into edit mode
+    bpy.ops.object.select_all(action='DESELECT')
+    armature = bpy.data.objects['armature']
+    bpy.context.scene.objects.active = armature
+    bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+
+    # loop over all bones
+    for bone in armature.data.edit_bones:
+        # get current head and tail
+        old_head = bone.head
+        old_tail = bone.tail
+
+        bone.head = old_tail
+        # get name of child
+        log("current bone: '{}'".format(bone.name), 'INFO')
+        try:
+            child = model['links'][model['links'][bone.name]['children'][0]]
+            child_pose = model['links'][model['links'][bone.name]['children'][0]]['pose']['translation']
+            if not (child_pose[0] == 0.0 and child_pose[1] == 0.0 and child_pose[2] == 0.0):
+                bone.tail = child_pose
+
+        except IndexError:
+            bone.tail = (old_tail[0], old_tail[1] + offset, old_tail[2])
+
+    # add a root bone under base_footprint
+    new_root = armature.data.edit_bones.new('root_bone')
+    new_root.head = (0.0, 0.0, 0.0)
+    new_root.tail = armature.data.edit_bones['base_footprint'].head
+    armature.data.edit_bones['base_footprint'].parent = new_root
+    new_root.use_connect = True 
+
+
 
 def deriveLinkfromObject(obj, scale=0.2, parent_link=True, parent_objects=False, nameformat=''):
     """Derives a link from an object using its name, transformation and parenting.

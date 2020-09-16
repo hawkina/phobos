@@ -42,6 +42,7 @@ from phobos.defs import linkobjignoretypes
 from phobos.model.joints import addJointConstraints
 from phobos.model.kinematics import addPR2KinematicsConstraints
 from phobos.model.kinematics import boneModificationsPR2
+from phobos.model.links import moveUpEachBone
 
 
 def collectMaterials(objectlist):
@@ -1216,7 +1217,8 @@ def buildModelFromDictionary(model):
     buildSkeletonFromDictionary(model, visited_links, model['links']['base_footprint'], previous, newobjects, counter)
     # after the skeleton is build, move and parent the meshes and fix some bone things
     # modify bones
-    boneModificationsPR2()
+    moveUpEachBone(model)
+    #boneModificationsPR2()
 
     visited_meshes = {}
     unvisited_meshes = []
@@ -1236,6 +1238,7 @@ def buildModelFromDictionary(model):
             # make sure meshes have different names then bones becasue unreal <.<'
             mesh.name = "mesh_" + mesh.name
 
+    
     
     # end new
 

@@ -371,8 +371,9 @@ enforce_parent = [#'r_shoulder_pan_link',
                   #'l_gripper_l_finger_link'
                   ]
 
-parenting_exceptions = ['r_gripper_r_finger_tip_link', 'r_gripper_l_finger_tip_link',
-                        'l_gripper_r_finger_tip_link', 'l_gripper_l_finger_tip_link']
+parenting_exceptions = [#'r_gripper_r_finger_tip_link', 'r_gripper_l_finger_tip_link',
+                        #'l_gripper_r_finger_tip_link', 'l_gripper_l_finger_tip_link'
+                        ]
 
 def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
     #log("-----------------------------------------------", 'DEBUG')
@@ -519,7 +520,7 @@ def moveAllMeshes(model, visited_meshes, current, unvisited_meshes):
                 mat_loc = mathutils.Matrix.Translation((loc_parent_bone_head[0], loc_parent_bone_head[1], loc_parent_bone_head[2])).to_4x4()
                 mesh.matrix_world = mat_loc
             else:
-                loc_parent_bone_tail = armature.data.bones[parent_bone_name].tail_local
+                loc_parent_bone_tail = armature.data.bones[parent_bone_name].head_local # HOT-FIX. was tail_local
                 #log("location of parent's bone tail: '{}'".format(loc_parent_bone_tail), 'DEBUG')
                 mat_loc = mathutils.Matrix.Translation((loc_parent_bone_tail[0], loc_parent_bone_tail[1], loc_parent_bone_tail[2])).to_4x4()
                 mesh.matrix_world = mat_loc
