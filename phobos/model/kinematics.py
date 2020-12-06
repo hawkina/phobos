@@ -218,4 +218,5 @@ def addPR2KinematicsConstraints():
     addLockRotationConstraint('r_gripper_l_finger_link', 1, 1, 1)
     addLockRotationConstraint('r_gripper_tool_frame', 1, 1, 1)
     addLockRotationConstraint('r_gripper_motor_slider_link', 1, 1, 1)
+    log("done generating constraints", 'INFO')
 
